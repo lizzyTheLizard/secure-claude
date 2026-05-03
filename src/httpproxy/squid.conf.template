@@ -1,0 +1,61 @@
+# -------------------------------------------------------
+# Ports & Basic Setup
+# -------------------------------------------------------
+http_port 3128
+
+# Disable caching (optional, cleaner for security proxy use)
+cache deny all
+cache_mem 0 MB
+
+# -------------------------------------------------------
+# ACL Definitions
+# -------------------------------------------------------
+
+# Source: only our proxy network (adjust subnet if needed)
+acl localnet src 172.16.0.0/12
+acl localnet src 10.0.0.0/8
+acl localnet src 192.168.0.0/16
+
+# Standard ports
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 443
+
+# CONNECT method (required for HTTPS tunneling)
+acl CONNECT method CONNECT
+
+# Domain lists
+acl whitelist dstdomain "/etc/squid/whitelist.txt"
+acl blacklist dstdomain "/etc/squid/blacklist.txt"
+
+# -------------------------------------------------------
+# Access Rules (order matters: first match wins)
+# -------------------------------------------------------
+
+# Block non-standard ports
+http_access deny !Safe_ports
+
+# Only allow CONNECT on SSL port 443
+http_access deny CONNECT !SSL_ports
+
+${ACCESS_RULES}
+
+# -------------------------------------------------------
+# Outgoing Proxy
+# -------------------------------------------------------
+
+${PROXY_RULES}
+
+# -------------------------------------------------------
+# Logging
+# -------------------------------------------------------
+access_log /var/log/squid/access.log squid
+cache_log /var/log/squid/cache.log
+
+# Log format includes: timestamp, client, method, URL, status
+logformat squid %ts.%03tu %6tr %>a %Ss/%03>Hs %<st %rm %ru %[un %Sh/%<a %mt
+
+# -------------------------------------------------------
+# DNS
+# -------------------------------------------------------
+dns_nameservers ${DNS_SERVERS}

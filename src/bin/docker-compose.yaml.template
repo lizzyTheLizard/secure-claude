@@ -1,0 +1,48 @@
+services:
+  claude:
+    build:
+      context: .
+      dockerfile_inline: |
+          FROM node:20-slim
+          RUN npm install -g @anthropic-ai/claude-code
+          RUN userdel node
+          RUN useradd -u ${UID} ${USER}
+          USER ${USER}
+          WORKDIR ${CWD}
+          ENTRYPOINT ["claude"]
+    environment:
+    - HTTP_PROXY=http://httpproxy:3128
+    - http_proxy=http://httpproxy:3128
+    - HTTPS_PROXY=http://httpproxy:3128
+    - https_proxy=http://httpproxy:3128
+    - NO_PROXY=localhost,127.0.0.1
+    - no_proxy=localhost,127.0.0.1
+    volumes:
+     - claudeHomeDir:/home/${USER}
+     - ${CWD}:${CWD}
+    networks:
+      intnet: {}
+    depends_on:
+    - httpproxy
+
+  httpproxy:
+    image: ubuntu/squid:latest
+    container_name: squid-proxy
+    restart: unless-stopped
+    ports:
+      - "3128:3128"
+    volumes:
+      - ./squid.conf:/etc/squid/squid.conf:ro
+      - ./whitelist.txt:/etc/squid/whitelist.txt:ro
+      - ./blacklist.txt:/etc/squid/blacklist.txt:ro
+    networks:
+      intnet: {}
+      extnet: {}
+
+networks:
+  intnet:
+    internal: true
+  extnet: {}
+
+volumes:
+  claudeHomeDir:

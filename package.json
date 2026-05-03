@@ -1,0 +1,35 @@
+{
+  "name": "secure-claude",
+  "version": "1.0.0",
+  "description": "Runs Claude Code in a sandboxed Docker environment with HTTP proxy filtering",
+  "type": "module",
+  "bin": {
+    "secure-claude": "./dist/bin/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "prepare": "pnpm run build",
+    "lint": "eslint .",
+    "start": "node dist/bin/index.js recreate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@stylistic/eslint-plugin": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "packageManager": "pnpm@10.33.2"
+}
