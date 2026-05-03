@@ -28,27 +28,34 @@ async function createSquidConf(config: SecureClaudeConfig): Promise<void> {
 function getAccessRules(config: SecureClaudeConfig): string {
   if (config.defaultAllow) {
     return `
-      # Whitelist override: explicitly allow these domains first
-      http_access allow localnet whitelist
+# Antropic must be reachable otherwise claude code won't run at all, so always allow it
+acl anthropic dstdomain .anthropic.com
+http_access allow anthropic
 
-      # Then block blacklisted domains
-      http_access deny localnet blacklist
+# Whitelist override: explicitly allow these domains first
+http_access allow whitelist
 
-      # Default behavior: allow all
-      http_access allow all
+# Then block blacklisted domains
+http_access deny blacklist
+
+# Default behavior: allow all
+http_access allow all
     `
   }
   else {
     return `
-      # First block blacklisted domains
-      http_access deny localnet blacklist
+# Antropic must be reachable otherwise claude code won't run at all, so always allow it
+acl anthropic dstdomain .anthropic.com
+http_access allow anthropic
 
-      # Explicitly allow whitelisted domains
-      http_access allow localnet whitelist
+# First block blacklisted domains
+http_access deny blacklist
 
-      # Default behavior: allow localhost and deny everything else
-      http_access allow localnet
-      http_access deny all
+# Explicitly allow whitelisted domains
+http_access allow whitelist
+
+# Default behavior: deny all
+http_access deny all
     `
   }
 }

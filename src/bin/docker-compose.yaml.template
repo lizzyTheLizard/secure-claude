@@ -5,6 +5,7 @@ services:
       dockerfile_inline: |
           FROM node:20-slim
           RUN npm install -g @anthropic-ai/claude-code
+          RUN apt-get update && apt-get install -y curl python3
           RUN userdel node
           RUN useradd -u ${UID} ${USER}
           USER ${USER}
@@ -27,7 +28,6 @@ services:
 
   httpproxy:
     image: ubuntu/squid:latest
-    container_name: squid-proxy
     restart: unless-stopped
     ports:
       - "3128:3128"

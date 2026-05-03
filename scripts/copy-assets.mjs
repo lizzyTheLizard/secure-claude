@@ -14,7 +14,6 @@ cpSync(
 )
 
 cpSync(
-  join(root, 'src', 'httpproxy'),
-  join(root, 'dist', 'httpproxy'),
-  { recursive: true },
+  join(root, 'src', 'httpproxy', 'squid.conf.template'),
+  join(root, 'dist', 'httpproxy', 'squid.conf.template'),
 )
