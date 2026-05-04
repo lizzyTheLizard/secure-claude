@@ -29,7 +29,7 @@ jobs:
         run: pnpm build
 
       - name: Unit tests
-        run: pnpm vitest run --reporter=verbose tests/**/*.unit.test.ts
+        run: pnpm vitest run --reporter=verbose .unit.test
 
       - name: Cache Docker layers
         uses: actions/cache@v4
@@ -47,7 +47,7 @@ jobs:
       - name: Integration tests
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: pnpm vitest run --reporter=verbose tests/**/*.integration.test.ts
+        run: pnpm vitest run --reporter=verbose .integration.test
 
       - name: Save Docker cache
         if: always()
