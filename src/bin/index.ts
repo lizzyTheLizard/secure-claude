@@ -32,7 +32,8 @@ async function handleRegeneration(config: SecureClaudeConfig) {
 }
 
 function runClaude(config: SecureClaudeConfig) {
-  const args = ['compose', 'run', '--quiet', '--rm', 'claude', ...process.argv.slice(2)]
+  const noTTY = !process.stdout.isTTY
+  const args = ['compose', 'run', '--quiet', '--rm', ...(noTTY ? ['-T'] : []), 'claude', ...process.argv.slice(2)]
   console.debug('Starting Claude container using ' + ['docker', ...args].join(' ') + ' in ' + config.tmpFolder)
   const result = spawnSync('docker', args, {
     cwd: config.tmpFolder,
