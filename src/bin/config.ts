@@ -11,14 +11,14 @@ export interface SecureClaudeConfig {
   blockedDomains: string[]
   defaultAllow: boolean
   dnsServers: string
-  proxy?: { host: string, port: number, username: string, password: string }
+  proxy: { host: string, port: number, username: string, password: string } | 'NONE'
 }
 
 export function loadConfig(cwd: string): SecureClaudeConfig {
   const configPath = path.join(cwd, 'secure-claude.yaml')
 
   if (!fs.existsSync(configPath)) {
-    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8' }
+    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE' }
   }
 
   const raw = fs.readFileSync(configPath, 'utf8')
@@ -37,5 +37,6 @@ export function loadConfig(cwd: string): SecureClaudeConfig {
     blockedDomains: parsedInput.blockedDomains ?? [],
     defaultAllow: parsedInput.defaultAllow ?? false,
     dnsServers: parsedInput.dnsServers ?? '1.1.1.1 8.8.8.8',
+    proxy: parsedInput.proxy ?? 'NONE',
   }
 }
