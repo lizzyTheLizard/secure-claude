@@ -8,17 +8,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm build        # tsc + copy non-TS assets (templates, squid.conf) into dist/
 pnpm lint         # eslint across the whole project
 pnpm start        # node dist/bin/index.js recreate  (forces regeneration)
-pnpm test         # run integration tests (requires ANTHROPIC_API_KEY + Docker)
+pnpm test         # run all tests (unit + integration; integration requires ANTHROPIC_API_KEY + Docker)
 pnpm test:watch   # vitest watch mode
 ```
 
 TypeScript is compiled to `dist/` with `tsc`; the `scripts/copy-assets.mjs` step copies template files that `tsc` ignores (`.yaml.template`, `squid.conf.template`).
 
-## Integration tests
+## Tests
 
-Tests live in `tests/integration/` and are run with vitest. They are **end-to-end**: each test creates a temp directory, writes a `secure-claude.yaml`, spawns `node dist/bin/index.js -p "<prompt>"`, and asserts on the HTTP status code Claude reports back from a `curl` inside the container.
+Tests live in `tests/` and are run with vitest. Two naming conventions are used:
 
-Requirements: `ANTHROPIC_API_KEY` env var, Docker running. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache. All tests run sequentially to avoid Docker container name conflicts.
+- `*.unit.test.ts` — pure unit tests, no external dependencies, run anywhere.
+- `*.integration.test.ts` — end-to-end tests: each test creates a temp directory, writes a `secure-claude.yaml`, spawns `node dist/bin/index.js -p "<prompt>"`, and asserts on the HTTP status code Claude reports back from a `curl` inside the container. Requires `ANTHROPIC_API_KEY` env var and Docker running. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache. All tests run sequentially to avoid Docker container name conflicts.
 
 `ANTHROPIC_API_KEY` is loaded automatically from a `.env` file in the project root (via `dotenv` in `vitest.config.ts`). Copy `.env` and fill in your key — it is git-ignored.
 

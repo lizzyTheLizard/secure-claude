@@ -61,7 +61,7 @@ http_access deny all
 }
 
 function getProxyConfig(config: SecureClaudeConfig): string {
-  if (!config.proxy) return ''
+  if (config.proxy === 'NONE') return ''
   const { host, port, username, password } = config.proxy
   return `cache_peer ${host} parent ${port.toString()} 0 no-query default login=${username}:${password}`
 }

@@ -5,16 +5,13 @@ import { needsRegeneration } from './needsRegeneration.js'
 import { runInit } from './init.js'
 import { recreateFiles } from './recreate.js'
 
-try {
+main().catch(handleError)
+
+async function main() {
+  await handleInit()
   const cwd = process.cwd()
-  handleInit()
   const config = loadConfig(cwd)
-  handleRegeneration(config)
-    .then(() => { runClaude(config) })
-    .catch((err: unknown) => { handleError(err) })
-}
-catch (err: unknown) {
-  handleError(err)
+  await handleRegeneration(config).then(() => { runClaude(config) })
 }
 
 function handleError(err: unknown) {
@@ -22,11 +19,10 @@ function handleError(err: unknown) {
   process.exit(1)
 }
 
-function handleInit() {
-  if (process.argv[2] === 'init') {
-    runInit()
-    process.exit(0)
-  }
+async function handleInit() {
+  if (process.argv[2] !== 'init') return
+  await runInit()
+  process.exit(0)
 }
 
 async function handleRegeneration(config: SecureClaudeConfig) {
