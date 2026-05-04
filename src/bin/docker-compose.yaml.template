@@ -12,6 +12,7 @@ services:
           WORKDIR ${CWD}
           ENTRYPOINT ["claude"]
     environment:
+    - ANTHROPIC_API_KEY
     - HTTP_PROXY=http://httpproxy:3128
     - http_proxy=http://httpproxy:3128
     - HTTPS_PROXY=http://httpproxy:3128
