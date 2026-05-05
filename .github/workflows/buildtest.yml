@@ -6,8 +6,9 @@ on:
   pull_request:
 
 jobs:
-  ci:
+  buildtest:
     runs-on: ubuntu-latest
+    name: Build and test
     steps:
       - uses: actions/checkout@v4
 
