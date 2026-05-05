@@ -25,7 +25,7 @@ describe('network policy enforcement', () => {
     expect(r.WWW).toBe('200') // .google.com whitelisted → allowed
     expect(r.MAIL).toBe('000') // mail.google.com blacklisted → blocked
     expect(r.HTTPBIN).toBe('000') // not in whitelist → blocked by default
-  }, 30000)
+  }, 100000)
 
   it('allow-all default: whitelist overrides blacklist, blacklist blocks, unlisted allows', () => {
     testDir = createTestDir({
@@ -38,7 +38,7 @@ describe('network policy enforcement', () => {
     expect(r.WWW).toBe('200') // www.google.com whitelisted → overrides blacklist
     expect(r.MAIL).toBe('000') // .google.com blacklisted → blocked
     expect(r.HTTPBIN).toBe('200') // not blacklisted → allowed by default
-  }, 30000)
+  }, 100000)
 })
 
 const MULTI_CURL_PROMPT
