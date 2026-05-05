@@ -24,6 +24,7 @@ async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
   const vars: Record<string, string> = {
     USER: os.userInfo().username,
     UID: String(os.userInfo().uid),
+    ID: process.cwd().replace(/[^a-zA-Z0-9_-]/g, '_'), // Sanitize to avoid issues in Docker labels
     CWD: process.cwd(),
   }
   for (const [key, value] of Object.entries(vars)) {

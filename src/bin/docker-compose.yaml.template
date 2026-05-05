@@ -19,7 +19,7 @@ services:
     - NO_PROXY=localhost,127.0.0.1
     - no_proxy=localhost,127.0.0.1
     volumes:
-     - claudeHomeDir:/home/${USER}
+     - claudeHomeDir${ID}:/home/${USER}
      - ${CWD}:${CWD}
     networks:
       intnet: {}
@@ -45,4 +45,4 @@ networks:
   extnet: {}
 
 volumes:
-  claudeHomeDir:
+  claudeHomeDir${ID}:
