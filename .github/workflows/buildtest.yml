@@ -46,7 +46,6 @@ jobs:
 
       - name: Integration tests
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CREDENTIALS: ${{ secrets.CLAUDE_CREDENTIALS }}
         run: pnpm vitest run --reporter=verbose .integration.test
 
