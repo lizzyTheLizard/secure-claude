@@ -16,13 +16,13 @@ export async function needsRegeneration(tmpFolder: string, configPath: string | 
 
     const tmpFolderExists = await fsp.access(tmpFolder).then(() => true).catch(() => false)
     if (!tmpFolderExists) {
-      console.info(`Secure folder "${tmpFolder}" not found, generating files...`)
+      console.info(`Folder "${tmpFolder}" not found, generating files...`)
       return true
     }
 
     const entries = await fsp.readdir(tmpFolder)
     if (entries.length === 0) {
-      console.info(`Secure folder "${tmpFolder}" is empty, generating files...`)
+      console.info(`Folder "${tmpFolder}" is empty, generating files...`)
       return true
     }
 
@@ -62,7 +62,7 @@ export async function needsRegeneration(tmpFolder: string, configPath: string | 
     return false
   }
   catch (err: unknown) {
-    console.error('Error reading secure folder, regenerating files...', err)
+    console.error(`Error reading folder "${tmpFolder}", regenerating files...`, err)
     return true
   }
 }
