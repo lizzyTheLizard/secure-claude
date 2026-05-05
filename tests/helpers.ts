@@ -27,15 +27,20 @@ export function runSecureClaude(dir: string, prompt: string): void {
 }
 
 export function login(): void {
-  if (!fs.existsSync('claudecredentials.tar.bz2') && !process.env.CLAUDE_CREDENTIALS) {
-    throw new Error('No credentials provided. Please provide a claudecredentials.tar.bz2 file or set the CLAUDE_CREDENTIALS environment variable.')
-  }
-  if (process.env.CLAUDE_CREDENTIALS) {
-    fs.writeFileSync('claudecredentials.tar.bz2', Buffer.from(process.env.CLAUDE_CREDENTIALS, 'base64'))
-  }
   const USER = os.userInfo().username
   const UID = String(os.userInfo().uid)
-  spawnSync('docker', ['run', '--rm', '-v', `claudeHomeDir:/home`, '-v', 'claudecredentials.tar.bz2:/claudecredentials.tar.bz2', 'node', '/bin/sh', '-c', `tar -xjf /claudecredentials.tar.bz2 -C /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`])
+  if (process.env.CLAUDE_CREDENTIALS) {
+    console.log('Decoding credentials from environment variable...')
+    fs.writeFileSync('/tmp/claudecredentials.tar.bz2', Buffer.from(process.env.CLAUDE_CREDENTIALS, 'base64'))
+    spawnSync('docker', ['run', '--rm', '-v', `claudeHomeDir:/home`, '-v', '/tmp/claudecredentials.tar.bz2:/claudecredentials.tar.bz2', 'node', '/bin/sh', '-c', `mkdir /home/${USER} && tar -xjf /claudecredentials.tar.bz2 -C /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`], { stdio: 'inherit', encoding: 'utf8' })
+    fs.rmSync('/tmp/claudecredentials.tar.bz2')
+  }
+  else if (fs.existsSync('claudecredentials.tar.bz2')) {
+    spawnSync('docker', ['run', '--rm', '-v', `claudeHomeDir:/home`, '-v', './claudecredentials.tar.bz2:/claudecredentials.tar.bz2', 'node', '/bin/sh', '-c', `mkdir /home/${USER} && tar -xjf /claudecredentials.tar.bz2 -C /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`], { stdio: 'inherit', encoding: 'utf8' })
+  }
+  else {
+    throw new Error('No credentials provided. Please provide a claudecredentials.tar.bz2 file or set the CLAUDE_CREDENTIALS environment variable.')
+  }
   console.log('Login complete.')
 }
 

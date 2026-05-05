@@ -12,6 +12,7 @@ export async function recreateHttpProxy(config: SecureClaudeConfig): Promise<voi
 }
 
 async function createSquidConf(config: SecureClaudeConfig): Promise<void> {
+  console.debug('Creating squid.conf for HTTP proxy...')
   const templatePath = path.join(__dirname, 'squid.conf.template')
   let content = await fsp.readFile(templatePath, 'utf8')
   const vars: Record<string, string> = {
@@ -59,11 +60,13 @@ function getProxyConfig(config: SecureClaudeConfig): string {
 }
 
 async function createWhitelist(config: SecureClaudeConfig): Promise<void> {
+  console.debug('Creating whitelist for HTTP proxy...')
   const content = ['.anthropic.com', '.claude.com', ...config.allowedDomains].join('\n')
   await fsp.writeFile(path.join(config.tmpFolder, 'whitelist.txt'), content, 'utf8')
 }
 
 async function createBlacklist(config: SecureClaudeConfig): Promise<void> {
+  console.debug('Creating blacklist for HTTP proxy...')
   const content = config.blockedDomains.join('\n')
   await fsp.writeFile(path.join(config.tmpFolder, 'blacklist.txt'), content, 'utf8')
 }

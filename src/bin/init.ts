@@ -1,17 +1,17 @@
-import * as fs from 'node:fs'
+import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { stringify } from 'yaml'
 import type { SecureClaudeConfig } from './config.js'
 
-export async function runInit(cwd = process.cwd(), rl?: readline.Interface): Promise<void> {
+export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): Promise<void> {
   const configPath = path.join(cwd, 'secure-claude.yaml')
-  const ownedRl = rl === undefined
-  rl ??= readline.createInterface({ input: process.stdin, output: process.stdout })
+  const rlCreateHere = rlIn === undefined
+  const rl = rlIn ?? readline.createInterface({ input: process.stdin, output: process.stdout })
 
   try {
-    if (!await confirmOverwrite(rl, configPath)) return
-
+    const overwriteConfirmed = await confirmOverwrite(rl, configPath)
+    if (!overwriteConfirmed) return
     const defaultAllow = await askDefaultPolicy(rl)
     const { allowedDomains, blockedDomains } = defaultAllow
       ? await collectDomainsAllowFirst(rl)
@@ -25,16 +25,17 @@ export async function runInit(cwd = process.cwd(), rl?: readline.Interface): Pro
       dnsServers: await askDnsServers(rl),
     }
 
-    fs.writeFileSync(configPath, stringify(config), 'utf8')
+    await fsp.writeFile(configPath, stringify(config), 'utf8')
     console.log(`Created ${configPath}`)
   }
   finally {
-    if (ownedRl) rl.close()
+    if (rlCreateHere) rl.close()
   }
 }
 
 async function confirmOverwrite(rl: readline.Interface, configPath: string): Promise<boolean> {
-  if (!fs.existsSync(configPath)) return true
+  const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
+  if (!configExists) return true
   const answer = await ask(rl, 'secure-claude.yaml already exists. Overwrite? (y/N) ')
   if (answer.toLowerCase() !== 'y') {
     console.log('Aborted.')
