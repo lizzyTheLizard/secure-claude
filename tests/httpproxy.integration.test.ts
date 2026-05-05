@@ -14,26 +14,26 @@ afterEach(() => {
 }, 30000)
 
 describe('network policy enforcement', () => {
-  it('deny-all default: whitelist allows, blacklist blocks, unlisted blocks', () => {
+  it('deny-all default: whitelist allows, blacklist blocks, unlisted blocks', async () => {
     testDir = createTestDir({
       defaultAllow: false,
       allowedDomains: ['.google.com'],
       blockedDomains: ['mail.google.com'],
     })
-    runSecureClaude(testDir, MULTI_CURL_PROMPT)
+    await runSecureClaude(testDir, MULTI_CURL_PROMPT)
     const r = extractResults(testDir)
     expect(r.WWW).toBe('200') // .google.com whitelisted → allowed
     expect(r.MAIL).toBe('000') // mail.google.com blacklisted → blocked
     expect(r.HTTPBIN).toBe('000') // not in whitelist → blocked by default
   }, 100000)
 
-  it('allow-all default: whitelist overrides blacklist, blacklist blocks, unlisted allows', () => {
+  it('allow-all default: whitelist overrides blacklist, blacklist blocks, unlisted allows', async () => {
     testDir = createTestDir({
       defaultAllow: true,
       blockedDomains: ['.google.com'],
       allowedDomains: ['www.google.com'],
     })
-    runSecureClaude(testDir, MULTI_CURL_PROMPT)
+    await runSecureClaude(testDir, MULTI_CURL_PROMPT)
     const r = extractResults(testDir)
     expect(r.WWW).toBe('200') // www.google.com whitelisted → overrides blacklist
     expect(r.MAIL).toBe('000') // .google.com blacklisted → blocked

@@ -2,7 +2,7 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as crypto from 'node:crypto'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { stringify } from 'yaml'
 import { SecureClaudeConfig } from '../src/bin/config'
 
@@ -15,15 +15,19 @@ export function createTestDir(config: Partial<SecureClaudeConfig>): string {
   return dir
 }
 
-export function runSecureClaude(dir: string, prompt: string): void {
+export async function runSecureClaude(dir: string, prompt: string): Promise<void> {
   const start = Date.now()
-  const result = spawnSync('node', [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions'], {
-    cwd: dir,
-    stdio: ['ignore', 'inherit', 'inherit'],
-    timeout: 570_000,
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn('node', [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions'], {
+      cwd: dir,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      env: { ...process.env },
+      timeout: 570_000,
+    })
+    child.on('error', (err) => { reject(new Error(`Spawn error: ${err.message}`)) })
+    child.on('close', () => { resolve() })
   })
-  if (result.error) throw new Error(`Spawn error: ${result.error.message}`)
-  console.log(`SecureClaude process exited with code ${result.status?.toString() ?? 'unknown'} after ${((Date.now() - start) / 1000).toString()}s`)
+  console.log(`SecureClaude process exited after ${((Date.now() - start) / 1000).toString()}s`)
 }
 
 export function login(): void {
