@@ -1,14 +1,12 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { describe, it, beforeAll, afterEach, expect } from 'vitest'
-import { createTestDir, runSecureClaude, cleanup } from './helpers.ts'
+import { createTestDir, runSecureClaude, cleanup, login } from './helpers.ts'
 
 let testDir: string
 
 beforeAll(() => {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY must be set to run integration tests')
-  }
+  login()
 })
 
 afterEach(() => {

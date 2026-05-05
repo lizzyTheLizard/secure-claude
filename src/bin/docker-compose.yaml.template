@@ -12,7 +12,6 @@ services:
           WORKDIR ${CWD}
           ENTRYPOINT ["claude"]
     environment:
-    - ANTHROPIC_API_KEY
     - HTTP_PROXY=http://httpproxy:3128
     - http_proxy=http://httpproxy:3128
     - HTTPS_PROXY=http://httpproxy:3128
@@ -20,7 +19,7 @@ services:
     - NO_PROXY=localhost,127.0.0.1
     - no_proxy=localhost,127.0.0.1
     volumes:
-     - claudeHomeDir${ID}:/home/${USER}
+     - claudeHomeDir:/home
      - ${CWD}:${CWD}
     networks:
       intnet: {}
@@ -46,4 +45,5 @@ networks:
   extnet: {}
 
 volumes:
-  claudeHomeDir${ID}:
+  claudeHomeDir:
+    external: true

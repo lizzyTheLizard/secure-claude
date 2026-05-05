@@ -21,10 +21,22 @@ export function runSecureClaude(dir: string, prompt: string): void {
     cwd: dir,
     stdio: ['ignore', 'inherit', 'inherit'],
     timeout: 570_000,
-    env: { ...process.env },
   })
   if (result.error) throw new Error(`Spawn error: ${result.error.message}`)
   console.log(`SecureClaude process exited with code ${result.status?.toString() ?? 'unknown'} after ${((Date.now() - start) / 1000).toString()}s`)
+}
+
+export function login(): void {
+  if (!fs.existsSync('claudecredentials.tar.bz2') && !process.env.CLAUDE_CREDENTIALS) {
+    throw new Error('No credentials provided. Please provide a claudecredentials.tar.bz2 file or set the CLAUDE_CREDENTIALS environment variable.')
+  }
+  if (process.env.CLAUDE_CREDENTIALS) {
+    fs.writeFileSync('claudecredentials.tar.bz2', Buffer.from(process.env.CLAUDE_CREDENTIALS, 'base64'))
+  }
+  const USER = os.userInfo().username
+  const UID = String(os.userInfo().uid)
+  spawnSync('docker', ['run', '--rm', '-v', `claudeHomeDir:/home`, '-v', 'claudecredentials.tar.bz2:/claudecredentials.tar.bz2', 'node', '/bin/sh', '-c', `tar -xjf /claudecredentials.tar.bz2 -C /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`])
+  console.log('Login complete.')
 }
 
 export function cleanup(dir: string): void {

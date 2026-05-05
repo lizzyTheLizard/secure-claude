@@ -8,6 +8,8 @@ import { recreateHttpProxy } from '../httpproxy/recreateHttpProxy.js'
 import { SecureClaudeConfig } from './config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const USER = os.userInfo().username
+const UID = String(os.userInfo().uid)
 
 export async function recreateFiles(config: SecureClaudeConfig): Promise<void> {
   console.debug(`Generating files into "${config.tmpFolder}"...`)
@@ -15,18 +17,15 @@ export async function recreateFiles(config: SecureClaudeConfig): Promise<void> {
   await copyComposeTemplate(config)
   await recreateHttpProxy(config)
   await writeManifest(config)
+  buildDockerVolume()
+  initializeDockerVolume()
   buildDockerImage(config)
 }
 
 async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
   const templatePath = path.join(__dirname, 'docker-compose.yaml.template')
   let content = await fsp.readFile(templatePath, 'utf8')
-  const vars: Record<string, string> = {
-    USER: os.userInfo().username,
-    UID: String(os.userInfo().uid),
-    ID: process.cwd().replace(/[^a-zA-Z0-9_-]/g, '_'), // Sanitize to avoid issues in Docker labels
-    CWD: process.cwd(),
-  }
+  const vars: Record<string, string> = { USER: USER, UID: UID, CWD: process.cwd() }
   for (const [key, value] of Object.entries(vars)) {
     content = content.replaceAll(`\${${key}}`, value)
   }
@@ -50,6 +49,42 @@ async function writeManifest(config: SecureClaudeConfig): Promise<void> {
     JSON.stringify(manifest, null, 2),
     'utf8',
   )
+}
+
+function buildDockerVolume() {
+  console.debug('Create docker volumes if not exist...')
+  const result = spawnSync('docker', ['volume', 'create', `claudeHomeDir`], {
+    stdio: 'ignore', // Suppress output; we'll handle errors based on exit code
+  })
+  if (result.error) {
+    const msg = (result.error as NodeJS.ErrnoException).code === 'ENOENT'
+      ? 'Docker not found — is it installed and on your PATH?'
+      : `Failed to spawn docker: ${result.error.message}`
+    console.error(msg)
+    process.exit(1)
+  }
+  if (result.status !== 0) {
+    console.error(`Create volume failed with exit code ${result.status?.toString() ?? 'unknown'}`)
+    process.exit(1)
+  }
+}
+
+function initializeDockerVolume() {
+  console.debug('Initialize docker volumes if not exist...')
+  const result = spawnSync('docker', ['run', '--rm', '-v', `claudeHomeDir:/home`, 'node', '/bin/sh', '-c', `mkdir -p /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`], {
+  })
+  if (result.error) {
+    const msg = (result.error as NodeJS.ErrnoException).code === 'ENOENT'
+      ? 'Docker not found — is it installed and on your PATH?'
+      : `Failed to spawn docker: ${result.error.message}`
+    console.error(msg)
+    process.exit(1)
+  }
+
+  if (result.status !== 0) {
+    console.error(`Chown volume failed with exit code ${result.status?.toString() ?? 'unknown'}`)
+    process.exit(1)
+  }
 }
 
 function buildDockerImage(config: SecureClaudeConfig) {

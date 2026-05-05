@@ -28,10 +28,6 @@ async function createSquidConf(config: SecureClaudeConfig): Promise<void> {
 function getAccessRules(config: SecureClaudeConfig): string {
   if (config.defaultAllow) {
     return `
-# Antropic must be reachable otherwise claude code won't run at all, so always allow it
-acl anthropic dstdomain .anthropic.com
-http_access allow anthropic
-
 # Whitelist override: explicitly allow these domains first
 http_access allow whitelist
 
@@ -44,10 +40,6 @@ http_access allow all
   }
   else {
     return `
-# Antropic must be reachable otherwise claude code won't run at all, so always allow it
-acl anthropic dstdomain .anthropic.com
-http_access allow anthropic
-
 # First block blacklisted domains
 http_access deny blacklist
 
@@ -67,7 +59,7 @@ function getProxyConfig(config: SecureClaudeConfig): string {
 }
 
 async function createWhitelist(config: SecureClaudeConfig): Promise<void> {
-  const content = config.allowedDomains.join('\n')
+  const content = ['.anthropic.com', '.claude.com', ...config.allowedDomains].join('\n')
   await fsp.writeFile(path.join(config.tmpFolder, 'whitelist.txt'), content, 'utf8')
 }
 
