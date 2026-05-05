@@ -7,11 +7,11 @@ let testDir: string
 
 beforeAll(() => {
   login()
-})
+}, 100000)
 
 afterEach(() => {
   if (testDir) cleanup(testDir)
-})
+}, 30000)
 
 describe('network policy enforcement', () => {
   it('deny-all default: whitelist allows, blacklist blocks, unlisted blocks', () => {
