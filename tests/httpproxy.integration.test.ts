@@ -48,6 +48,7 @@ const MULTI_CURL_PROMPT
     + 'curl --max-time 30 -s -o /dev/null -w "RESULT_WWW:%{http_code}\\n" https://www.google.com >> RESULT.txt; '
     + 'curl --max-time 30 -s -o /dev/null -w "RESULT_MAIL:%{http_code}\\n" https://mail.google.com >> RESULT.txt; '
     + 'curl --max-time 30 -s -o /dev/null -w "RESULT_HTTPBIN:%{http_code}\\n" https://httpbin.org >> RESULT.txt'
+    + ' Output a short success message when done to stdout.'
 
 function extractResults(dir: string): Record<'WWW' | 'MAIL' | 'HTTPBIN', string> {
   const content = fs.readFileSync(path.join(dir, 'RESULT.txt'), 'utf8')

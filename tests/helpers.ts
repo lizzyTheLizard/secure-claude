@@ -16,6 +16,7 @@ export function createTestDir(config: Partial<SecureClaudeConfig>): string {
 }
 
 export function runSecureClaude(dir: string, prompt: string): void {
+  const start = Date.now()
   const result = spawnSync('node', [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions'], {
     cwd: dir,
     stdio: ['ignore', 'inherit', 'inherit'],
@@ -23,6 +24,7 @@ export function runSecureClaude(dir: string, prompt: string): void {
     env: { ...process.env },
   })
   if (result.error) throw new Error(`Spawn error: ${result.error.message}`)
+  console.log(`SecureClaude process exited with code ${result.status?.toString() ?? 'unknown'} after ${((Date.now() - start) / 1000).toString()}s`)
 }
 
 export function cleanup(dir: string): void {
