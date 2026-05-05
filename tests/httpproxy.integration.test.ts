@@ -5,17 +5,17 @@ import { createTestDir, runSecureClaude, cleanup, login } from './helpers.ts'
 
 let testDir: string
 
-beforeAll(() => {
-  login()
+beforeAll(async () => {
+  await login()
 }, 100000)
 
-afterEach(() => {
-  if (testDir) cleanup(testDir)
+afterEach(async () => {
+  if (testDir) await cleanup(testDir)
 }, 30000)
 
 describe('network policy enforcement', () => {
   it('deny-all default: whitelist allows, blacklist blocks, unlisted blocks', async () => {
-    testDir = createTestDir({
+    testDir = await createTestDir({
       defaultAllow: false,
       allowedDomains: ['.google.com'],
       blockedDomains: ['mail.google.com'],
@@ -28,7 +28,7 @@ describe('network policy enforcement', () => {
   }, 100000)
 
   it('allow-all default: whitelist overrides blacklist, blacklist blocks, unlisted allows', async () => {
-    testDir = createTestDir({
+    testDir = await createTestDir({
       defaultAllow: true,
       blockedDomains: ['.google.com'],
       allowedDomains: ['www.google.com'],
