@@ -15,16 +15,14 @@ export function createTestDir(config: Partial<SecureClaudeConfig>): string {
   return dir
 }
 
-export function runSecureClaude(dir: string, prompt: string): string {
+export function runSecureClaude(dir: string, prompt: string): void {
   const result = spawnSync('node', [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions'], {
     cwd: dir,
-    encoding: 'utf8',
+    stdio: 'inherit',
     timeout: 570_000,
     env: { ...process.env },
   })
-  const output = result.stdout + result.stderr
   if (result.error) throw new Error(`Spawn error: ${result.error.message}`)
-  return output
 }
 
 export function cleanup(dir: string): void {
