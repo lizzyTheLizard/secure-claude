@@ -3,29 +3,33 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Manifest } from './needsRegeneration.js'
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { recreateHttpProxy } from '../httpproxy/recreateHttpProxy.js'
 import { SecureClaudeConfig } from './config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const USER = os.userInfo().username
+const UID = String(os.userInfo().uid)
 
-export async function recreateFiles(config: SecureClaudeConfig): Promise<void> {
-  console.debug(`Generating files into "${config.tmpFolder}"...`)
+export async function recreate(config: SecureClaudeConfig): Promise<void> {
+  await recreateTmpDir(config)
+  await recreateDockerContainers(config)
+}
+
+async function recreateTmpDir(config: SecureClaudeConfig): Promise<void> {
+  const startTime = Date.now()
   await fsp.mkdir(config.tmpFolder, { recursive: true })
   await copyComposeTemplate(config)
   await recreateHttpProxy(config)
   await writeManifest(config)
-  buildDockerImage(config)
+  console.debug('Recreation of ' + config.tmpFolder + ' complete in ' + ((Date.now() - startTime) / 1000).toFixed(2) + 's')
 }
 
 async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
+  console.debug('Copying docker-compose template to ' + config.tmpFolder)
   const templatePath = path.join(__dirname, 'docker-compose.yaml.template')
   let content = await fsp.readFile(templatePath, 'utf8')
-  const vars: Record<string, string> = {
-    USER: os.userInfo().username,
-    UID: String(os.userInfo().uid),
-    CWD: process.cwd(),
-  }
+  const vars: Record<string, string> = { USER: USER, UID: UID, CWD: process.cwd() }
   for (const [key, value] of Object.entries(vars)) {
     content = content.replaceAll(`\${${key}}`, value)
   }
@@ -34,6 +38,7 @@ async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
 }
 
 async function writeManifest(config: SecureClaudeConfig): Promise<void> {
+  console.debug('Writing manifest file...')
   // TODO: Add the version of myself, so that if the version change I can update
   const configFileLastChange = config.configPath
     ? new Date((await fsp.stat(config.configPath)).mtimeMs).toISOString()
@@ -51,24 +56,50 @@ async function writeManifest(config: SecureClaudeConfig): Promise<void> {
   )
 }
 
-function buildDockerImage(config: SecureClaudeConfig) {
-  console.debug('Building docker image...')
-  const result = spawnSync('docker', ['compose', 'build'], {
-    cwd: config.tmpFolder,
-    stdio: undefined, // Suppress output; we'll handle errors based on exit code
+async function recreateDockerContainers(config: SecureClaudeConfig): Promise<void> {
+  const startTime = Date.now()
+  await buildDockerVolume()
+  await buildDockerImage(config)
+  console.debug('Recreated docker containers complete in ' + ((Date.now() - startTime) / 1000).toFixed(2) + 's')
+}
+
+async function buildDockerVolume(): Promise<void> {
+  console.debug('Creating Docker volume "claudeHomeDir"...')
+  const createVolume = spawn('docker', ['volume', 'create', `claudeHomeDir`], { stdio: 'pipe' })
+  await new Promise<void>((resolve, reject) => {
+    createVolume.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createVolume.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createVolume.on('error', (err) => { reject(new Error(`Failed to create docker volume: ${err.message}`)) })
+    createVolume.on('close', (code) => {
+      if (code === null || code !== 0) reject(new Error(`Docker volume creation exited with code ${code?.toString() ?? 'unknown'}`))
+      else resolve()
+    })
   })
 
-  if (result.error) {
-    const msg = (result.error as NodeJS.ErrnoException).code === 'ENOENT'
-      ? 'Docker not found — is it installed and on your PATH?'
-      : `Failed to spawn docker: ${result.error.message}`
-    console.error(msg)
-    process.exit(1)
-  }
+  console.debug('Initializing docker volume "claudeHomeDir"...')
+  const args = ['run', '--rm', '-v', `claudeHomeDir:/home`, 'node', '/bin/sh', '-c', `mkdir -p /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`]
+  const initVolume = spawn('docker', args, { stdio: 'pipe' })
+  await new Promise<void>((resolve, reject) => {
+    initVolume.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    initVolume.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    initVolume.on('error', (err) => { reject(new Error(`Failed to initialize docker volume: ${err.message}`)) })
+    initVolume.on('close', (code) => {
+      if (code === null || code !== 0) reject(new Error(`Docker volume initialization exited with code ${code?.toString() ?? 'unknown'}`))
+      else resolve()
+    })
+  })
+}
 
-  if (result.status !== 0) {
-    console.error(`Docker build failed with exit code ${result.status?.toString() ?? 'unknown'}`)
-    process.exit(1)
-  }
-  console.debug('Docker image built successfully.')
+async function buildDockerImage(config: SecureClaudeConfig) {
+  console.debug('Creating Docker image "claude"...')
+  const createImage = spawn('docker', ['compose', 'build'], { cwd: config.tmpFolder, stdio: 'pipe' })
+  await new Promise<void>((resolve, reject) => {
+    createImage.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createImage.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createImage.on('error', (err) => { reject(new Error(`Failed to create docker image: ${err.message}`)) })
+    createImage.on('close', (code) => {
+      if (code === null || code !== 0) reject(new Error(`Docker image creation exited with code ${code?.toString() ?? 'unknown'}`))
+      else resolve()
+    })
+  })
 }

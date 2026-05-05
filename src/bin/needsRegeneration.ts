@@ -1,4 +1,4 @@
-import * as fs from 'node:fs'
+import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 
 export interface Manifest {
@@ -6,7 +6,7 @@ export interface Manifest {
   configFileLastChange?: string
 }
 
-export function needsRegeneration(tmpFolder: string, configPath: string | undefined): boolean {
+export async function needsRegeneration(tmpFolder: string, configPath: string | undefined): Promise<boolean> {
   try {
     if (process.argv[2] === 'recreate') {
       console.info(`Regeneration requested via command line argument, regenerating files...`)
@@ -14,45 +14,55 @@ export function needsRegeneration(tmpFolder: string, configPath: string | undefi
       return true
     }
 
-    if (!fs.existsSync(tmpFolder)) {
-      console.info(`Secure folder "${tmpFolder}" not found, generating files...`)
+    const tmpFolderExists = await fsp.access(tmpFolder).then(() => true).catch(() => false)
+    if (!tmpFolderExists) {
+      console.info(`Folder "${tmpFolder}" not found, generating files...`)
       return true
     }
 
-    const entries = fs.readdirSync(tmpFolder)
+    const entries = await fsp.readdir(tmpFolder)
     if (entries.length === 0) {
-      console.info(`Secure folder "${tmpFolder}" is empty, generating files...`)
+      console.info(`Folder "${tmpFolder}" is empty, generating files...`)
       return true
     }
 
     const manifestPath = path.join(tmpFolder, '.manifest.json')
-    if (!fs.existsSync(manifestPath)) {
+    const manifestExists = await fsp.access(manifestPath).then(() => true).catch(() => false)
+    if (!manifestExists) {
       console.info('Manifest not found, generating files...')
       return true
     }
 
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Manifest
+    const manifestRaw = await fsp.readFile(manifestPath, 'utf8')
+    const manifest = JSON.parse(manifestRaw) as Manifest
+    console.debug('Loaded manifest:', manifest)
 
-    if (!configPath && manifest.configFileLastChange) {
-      console.info('Config file was removed, regenerating files...')
-      return true
+    if (!configPath) {
+      console.debug('No config file provided')
+      if (manifest.configFileLastChange) {
+        console.info('Config file was removed, regenerating files...')
+        return true
+      }
+      console.debug('No config file before or now, no need to regenerate')
+      return false
     }
-    else if (configPath && !manifest.configFileLastChange) {
+
+    if (!manifest.configFileLastChange) {
       console.info('Config file was added, regenerating files...')
       return true
     }
-    else if (configPath && manifest.configFileLastChange) {
-      const configFileChanged = fs.statSync(configPath).mtimeMs
-      const configFileLastChanged = new Date(manifest.configFileLastChange).getTime()
-      if (configFileChanged !== configFileLastChanged) {
-        console.info('Config file changed, regenerating files...')
-        return true
-      }
+
+    const configFileStats = await fsp.stat(configPath)
+    const configFileLastChanged = new Date(manifest.configFileLastChange).getTime()
+    if (configFileStats.mtimeMs !== configFileLastChanged) {
+      console.info('Config file changed, regenerating files...')
+      return true
     }
+    console.debug('Config file has not changed since last generation, no need to regenerate')
     return false
   }
   catch (err: unknown) {
-    console.error('Error reading secure folder, regenerating files...', err)
+    console.error(`Error reading folder "${tmpFolder}", regenerating files...`, err)
     return true
   }
 }

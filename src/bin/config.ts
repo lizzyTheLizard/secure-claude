@@ -1,4 +1,4 @@
-import * as fs from 'node:fs'
+import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import { parse } from 'yaml'
 
@@ -14,21 +14,23 @@ export interface SecureClaudeConfig {
   proxy: { host: string, port: number, username: string, password: string } | 'NONE'
 }
 
-export function loadConfig(cwd: string): SecureClaudeConfig {
+export async function loadConfig(): Promise<SecureClaudeConfig> {
+  const cwd = process.cwd()
   const configPath = path.join(cwd, 'secure-claude.yaml')
-
-  if (!fs.existsSync(configPath)) {
+  const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
+  if (!configExists) {
+    console.debug(`No config file found at "${configPath}", using defaults`)
     return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE' }
   }
 
-  const raw = fs.readFileSync(configPath, 'utf8')
+  const raw = await fsp.readFile(configPath, 'utf8')
   const parsed: unknown = parse(raw)
-
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error(`Config file is not valid YAML: "${configPath}"`)
   }
 
   const parsedInput = parsed as Partial<SecureClaudeConfig>
+  console.debug(`Loaded config from "${configPath}":`, parsedInput)
   return {
     ...parsedInput,
     tmpFolder: parsedInput.tmpFolder ?? path.join(process.cwd(), DEFAULT_TMP_FOLDER),
