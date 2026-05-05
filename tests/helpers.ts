@@ -18,7 +18,7 @@ export function createTestDir(config: Partial<SecureClaudeConfig>): string {
 export function runSecureClaude(dir: string, prompt: string): void {
   const result = spawnSync('node', [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions'], {
     cwd: dir,
-    stdio: 'inherit',
+    stdio: ['ignore', 'inherit', 'inherit'],
     timeout: 570_000,
     env: { ...process.env },
   })
