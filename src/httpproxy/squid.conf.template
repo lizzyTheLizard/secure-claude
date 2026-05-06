@@ -28,9 +28,17 @@ acl CONNECT method CONNECT
 acl whitelist dstdomain "/etc/squid/whitelist.txt"
 acl blacklist dstdomain "/etc/squid/blacklist.txt"
 
+# MCP server on host
+acl mcp_host dstdomain host.docker.internal
+acl mcp_port port ${MCP_PORT}
+
 # -------------------------------------------------------
 # Access Rules (order matters: first match wins)
 # -------------------------------------------------------
+
+# Allow MCP server traffic on the designated port only; deny all other host access
+http_access allow mcp_host mcp_port
+http_access deny mcp_host
 
 # Block non-standard ports
 http_access deny !Safe_ports

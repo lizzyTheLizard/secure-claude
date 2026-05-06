@@ -37,6 +37,8 @@ ${ADDITIONAL_VOLUMES}
       - ./squid.conf:/etc/squid/squid.conf:ro
       - ./whitelist.txt:/etc/squid/whitelist.txt:ro
       - ./blacklist.txt:/etc/squid/blacklist.txt:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       intnet: {}
       extnet: {}

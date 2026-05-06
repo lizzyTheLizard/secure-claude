@@ -3,6 +3,7 @@ import * as path from 'node:path'
 import { parse } from 'yaml'
 
 const DEFAULT_TMP_FOLDER = '.secureclaude'
+const DEFAULT_MCP_PORT = 9418
 
 export interface VolumeMount {
   path: string
@@ -19,6 +20,9 @@ export interface SecureClaudeConfig {
   proxy: { host: string, port: number, username: string, password: string } | 'NONE'
   additionalVolumes: VolumeMount[]
   deniedPaths: string[]
+  mcpPort: number
+  enableGitCommands: boolean
+  cwd: string
 }
 
 export async function loadConfig(): Promise<SecureClaudeConfig> {
@@ -27,7 +31,7 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
   const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
   if (!configExists) {
     console.debug(`No config file found at "${configPath}", using defaults`)
-    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [] }
+    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [], mcpPort: DEFAULT_MCP_PORT, enableGitCommands: true, cwd: cwd }
   }
 
   const raw = await fsp.readFile(configPath, 'utf8')
@@ -49,5 +53,8 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
     proxy: parsedInput.proxy ?? 'NONE',
     additionalVolumes: parsedInput.additionalVolumes ?? [],
     deniedPaths: parsedInput.deniedPaths ?? [],
+    mcpPort: parsedInput.mcpPort ?? DEFAULT_MCP_PORT,
+    enableGitCommands: parsedInput.enableGitCommands ?? true,
+    cwd,
   }
 }

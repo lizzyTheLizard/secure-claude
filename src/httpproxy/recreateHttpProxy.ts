@@ -19,6 +19,7 @@ async function createSquidConf(config: SecureClaudeConfig): Promise<void> {
     ACCESS_RULES: getAccessRules(config),
     DNS_SERVERS: config.dnsServers,
     PROXY_RULES: getProxyConfig(config),
+    MCP_PORT: config.mcpPort.toString(),
   }
   for (const [key, value] of Object.entries(vars)) {
     content = content.replaceAll(`\${${key}}`, value)
