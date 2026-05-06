@@ -1,4 +1,7 @@
 import { defineConfig } from 'vitest/config'
+import { config } from 'dotenv'
+
+config({ override: false })
 
 export default defineConfig({
   test: {

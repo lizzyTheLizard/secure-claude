@@ -67,8 +67,8 @@ async function buildDockerVolume(): Promise<void> {
   console.debug('Creating Docker volume "claudeHomeDir"...')
   const createVolume = spawn('docker', ['volume', 'create', `claudeHomeDir`], { stdio: 'pipe' })
   await new Promise<void>((resolve, reject) => {
-    createVolume.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
-    createVolume.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createVolume.stdout.on('data', (data: Buffer) => { console.debug('> ' + data.toString()) })
+    createVolume.stderr.on('data', (data: Buffer) => { console.debug('! ' + data.toString()) })
     createVolume.on('error', (err) => { reject(new Error(`Failed to create docker volume: ${err.message}`)) })
     createVolume.on('close', (code) => {
       if (code === null || code !== 0) reject(new Error(`Docker volume creation exited with code ${code?.toString() ?? 'unknown'}`))
@@ -80,8 +80,8 @@ async function buildDockerVolume(): Promise<void> {
   const args = ['run', '--rm', '-v', `claudeHomeDir:/home`, 'node', '/bin/sh', '-c', `mkdir -p /home/${USER} && chown -R ${UID}:${UID} /home/${USER}`]
   const initVolume = spawn('docker', args, { stdio: 'pipe' })
   await new Promise<void>((resolve, reject) => {
-    initVolume.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
-    initVolume.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    initVolume.stdout.on('data', (data: Buffer) => { console.debug('> ' + data.toString()) })
+    initVolume.stderr.on('data', (data: Buffer) => { console.debug('! ' + data.toString()) })
     initVolume.on('error', (err) => { reject(new Error(`Failed to initialize docker volume: ${err.message}`)) })
     initVolume.on('close', (code) => {
       if (code === null || code !== 0) reject(new Error(`Docker volume initialization exited with code ${code?.toString() ?? 'unknown'}`))
@@ -94,8 +94,8 @@ async function buildDockerImage(config: SecureClaudeConfig) {
   console.debug('Creating Docker image "claude"...')
   const createImage = spawn('docker', ['compose', 'build'], { cwd: config.tmpFolder, stdio: 'pipe' })
   await new Promise<void>((resolve, reject) => {
-    createImage.stdout.on('data', (data: Buffer) => { console.debug(data.toString()) })
-    createImage.stderr.on('data', (data: Buffer) => { console.debug(data.toString()) })
+    createImage.stdout.on('data', (data: Buffer) => { console.debug('> ' + data.toString()) })
+    createImage.stderr.on('data', (data: Buffer) => { console.debug('! ' + data.toString()) })
     createImage.on('error', (err) => { reject(new Error(`Failed to create docker image: ${err.message}`)) })
     createImage.on('close', (code) => {
       if (code === null || code !== 0) reject(new Error(`Docker image creation exited with code ${code?.toString() ?? 'unknown'}`))

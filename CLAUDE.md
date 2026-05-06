@@ -19,7 +19,12 @@ TypeScript is compiled to `dist/` with `tsc`; the `scripts/copy-assets.mjs` step
 Tests live in `tests/` and are run with vitest. Two naming conventions are used:
 
 - `*.unit.test.ts` — pure unit tests, no external dependencies, run anywhere.
-- `*.integration.test.ts` — end-to-end tests: each test creates a temp directory, writes a `secure-claude.yaml`, spawns `node dist/bin/index.js -p "<prompt>"`, and asserts on the HTTP status code Claude reports back from a `curl` inside the container. Requires Docker running. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache. All tests run sequentially to avoid Docker container name conflicts.
+- `*.integration.test.ts` — end-to-end tests: each test creates a temp directory, writes a `secure-claude.yaml`, spawns `node dist/bin/index.js -p "<prompt>"`, and asserts on the HTTP status code Claude reports back from a `curl` inside the container. Requires Docker running and a valid `ANTHROPIC_API_KEY`. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache. All tests run sequentially to avoid Docker container name conflicts.
+
+  Set `ANTHROPIC_API_KEY` either as an environment variable or in a `.env` file at the project root:
+  ```
+  ANTHROPIC_API_KEY=sk-ant-...
+  ```
 
 ## Architecture
 

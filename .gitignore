@@ -1,4 +1,4 @@
 dist
 node_modules
 .secureclaude
-claudecredentials.tar.bz2
+.env

@@ -1,13 +1,9 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { describe, it, beforeAll, afterEach, expect } from 'vitest'
-import { createTestDir, runSecureClaude, cleanup, login } from './helpers.ts'
+import { describe, it, afterEach, expect } from 'vitest'
+import { createTestDir, runSecureClaude, cleanup } from './helpers.js'
 
 let testDir: string
-
-beforeAll(async () => {
-  await login()
-}, 100000)
 
 afterEach(async () => {
   if (testDir) await cleanup(testDir)

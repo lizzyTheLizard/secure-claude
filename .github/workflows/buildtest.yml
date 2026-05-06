@@ -46,7 +46,7 @@ jobs:
 
       - name: Integration tests
         env:
-          CLAUDE_CREDENTIALS: ${{ secrets.CLAUDE_CREDENTIALS }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: pnpm vitest run --reporter=verbose .integration.test
 
       - name: Save Docker cache
