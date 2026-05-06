@@ -53,8 +53,8 @@ export async function needsRegeneration(tmpFolder: string, configPath: string | 
     }
 
     const configFileStats = await fsp.stat(configPath)
-    const configFileLastChanged = new Date(manifest.configFileLastChange).getTime()
-    if (configFileStats.mtimeMs !== configFileLastChanged) {
+    const configFileLastChanged = new Date(manifest.configFileLastChange)
+    if (configFileStats.mtimeMs - configFileLastChanged.getTime() > 100) {
       console.info('Config file changed, regenerating files...')
       return true
     }

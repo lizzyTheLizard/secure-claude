@@ -37,10 +37,8 @@ async function handleRegeneration(config: SecureClaudeConfig) {
 async function runClaude(config: SecureClaudeConfig) {
   const args = ['compose', 'run', '--quiet', '--rm', 'claude', ...process.argv.slice(2)]
   console.debug('Starting Claude container using ' + ['docker', ...args].join(' ') + ' in ' + config.tmpFolder)
-  const claude = spawn('docker', args, { cwd: config.tmpFolder, stdio: 'pipe' })
+  const claude = spawn('docker', args, { cwd: config.tmpFolder, stdio: 'inherit' })
   return new Promise<void>((resolve, reject) => {
-    claude.stdout.on('data', (data: Buffer) => { console.debug('> ' + data.toString()) })
-    claude.stderr.on('data', (data: Buffer) => { console.debug('! ' + data.toString()) })
     claude.on('error', (err) => { reject(new Error(`Failed to start Claude process: ${err.message}`)) })
     claude.on('close', (code) => {
       if (code === null || code !== 0) reject(new Error(`Claude process exited with code ${code?.toString() ?? 'unknown'}`))

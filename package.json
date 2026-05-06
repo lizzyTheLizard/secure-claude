@@ -13,7 +13,7 @@
     "build": "tsc && node scripts/copy-assets.mjs",
     "prepare": "pnpm run build",
     "lint": "eslint .",
-    "start": "node dist/bin/index.js recreate",
+    "start": "node dist/bin/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

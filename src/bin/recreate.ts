@@ -29,12 +29,39 @@ async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
   console.debug('Copying docker-compose template to ' + config.tmpFolder)
   const templatePath = path.join(__dirname, 'docker-compose.yaml.template')
   let content = await fsp.readFile(templatePath, 'utf8')
-  const vars: Record<string, string> = { USER: USER, UID: UID, CWD: process.cwd() }
+  const additionalVolumes = await buildAdditionalVolumes(config)
+  const vars: Record<string, string> = { USER: USER, UID: UID, CWD: process.cwd(), ADDITIONAL_VOLUMES: additionalVolumes }
   for (const [key, value] of Object.entries(vars)) {
     content = content.replaceAll(`\${${key}}`, value)
   }
   await fsp.writeFile(path.join(config.tmpFolder, 'docker-compose.yaml'), content, 'utf8')
-  // TODO: Add more volumes and overwrite forbidden files
+}
+
+async function buildAdditionalVolumes(config: SecureClaudeConfig): Promise<string> {
+  const lines: string[] = []
+
+  for (const vol of config.additionalVolumes) {
+    lines.push(`     - type: bind`)
+    lines.push(`       source: ${vol.path}`)
+    lines.push(`       target: ${vol.path}`)
+    if (vol.mode === 'ro') lines.push(`       read_only: true`)
+  }
+
+  for (const denied of config.deniedPaths) {
+    const isDir = await fsp.stat(denied).then(s => s.isDirectory()).catch(() => false)
+    if (isDir) {
+      lines.push(`     - type: tmpfs`)
+      lines.push(`       target: ${denied}`)
+    }
+    else {
+      lines.push(`     - type: bind`)
+      lines.push(`       source: /dev/null`)
+      lines.push(`       target: ${denied}`)
+      lines.push(`       read_only: true`)
+    }
+  }
+
+  return lines.join('\n')
 }
 
 async function writeManifest(config: SecureClaudeConfig): Promise<void> {
