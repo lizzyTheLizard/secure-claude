@@ -16,7 +16,7 @@ describe('MCP host command execution', () => {
     await spawnHelper('git init', 'git', ['init'], testDir)
     await runSecureClaude(
       testDir,
-      'Use the git_status MCP tool and write its output to a file called STATUS.txt in the current directory. '
+      'Output a list of all MCP server you have access to and their status.Use the git_status MCP tool and write its output to a file called STATUS.txt in the current directory. '
       + 'Output a short success message when done.',
     )
     const status = fs.readFileSync(path.join(testDir, 'STATUS.txt'), 'utf8')

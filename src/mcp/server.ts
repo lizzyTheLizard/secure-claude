@@ -11,7 +11,6 @@ import { Request, Response } from 'express'
 export function startMcpServer(config: SecureClaudeConfig): () => void {
   const mcpServer = createMcpServer(config)
   const httpServer = createHtttpServer(config, mcpServer)
-  console.log(`MCP server started on port ${config.mcpPort.toString()}`)
 
   return () => {
     console.debug('Stopping MCP server...')
@@ -35,6 +34,7 @@ function createMcpServer(config: SecureClaudeConfig): McpServer {
 }
 
 function registerCommand(mcpServer: McpServer, config: SecureClaudeConfig, cmd: CommandConfig) {
+  console.debug(`Registering command "${cmd.name}" with template: ${cmd.template}`)
   mcpServer.registerTool(
     cmd.name,
     { description: cmd.description, inputSchema: getInputSchema(cmd) },

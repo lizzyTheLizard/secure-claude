@@ -16,7 +16,7 @@ export async function createTestDir(config: Record<string, unknown>): Promise<st
 
 export async function runSecureClaude(dir: string, prompt: string): Promise<void> {
   const start = Date.now()
-  const args = [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions', '--bare']
+  const args = [INDEX_JS, '-p', prompt, '--dangerously-skip-permissions', '--bare', '--debug']
   console.log(`Running SecureClaude with args: ${args.slice(1).join(' ')} in directory ${dir}`)
   await spawnHelper('Claude', 'node', args, dir)
   console.log(`SecureClaude process exited after ${((Date.now() - start) / 1000).toString()}s`)
