@@ -13,7 +13,7 @@ async function main() {
   await handleInit()
   const config = await loadConfig()
   await handleRegeneration(config)
-  const stopMcpServer = startMcpServer(config)
+  const stopMcpServer = await startMcpServer(config)
   try {
     await runClaude(config)
   }

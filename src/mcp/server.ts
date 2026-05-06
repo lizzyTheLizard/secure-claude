@@ -8,9 +8,14 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node'
 import { Request, Response } from 'express'
 
-export function startMcpServer(config: SecureClaudeConfig): () => void {
+export async function startMcpServer(config: SecureClaudeConfig): Promise<() => void> {
   const mcpServer = createMcpServer(config)
   const httpServer = createHtttpServer(config, mcpServer)
+
+  await new Promise<void>((resolve, reject) => {
+    httpServer.on('listening', () => { resolve() })
+    httpServer.on('error', (err) => { reject(new Error(`Failed to start MCP server: ${err.message}`)) })
+  })
 
   return () => {
     console.debug('Stopping MCP server...')
@@ -29,6 +34,7 @@ function createMcpServer(config: SecureClaudeConfig): McpServer {
   const mcpServer = new McpServer({ name: 'secure-claude-mcp-server', version: '1.0.0' })
   const configuredCommands = (config as unknown as CommandConfig).commands
   const commands = [...(config.enableGitCommands ? GIT_COMMANDS : []), ...(configuredCommands ?? [])]
+  console.debug(`Registering ${commands.length.toString()} commands with MCP server`)
   commands.forEach((cmd) => { registerCommand(mcpServer, config, cmd) })
   return mcpServer
 }
