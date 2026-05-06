@@ -13,8 +13,8 @@
     "build": "tsc && node scripts/copy-assets.mjs",
     "prepare": "pnpm run build",
     "lint": "eslint .",
-    "start": "node dist/bin/index.js recreate",
-    "test": "vitest run",
+    "start": "node dist/bin/index.js",
+    "test": "vitest run --no-file-parallelism",
     "test:watch": "vitest"
   },
   "keywords": [],

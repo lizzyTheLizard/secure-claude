@@ -4,6 +4,11 @@ import { parse } from 'yaml'
 
 const DEFAULT_TMP_FOLDER = '.secureclaude'
 
+export interface VolumeMount {
+  path: string
+  mode: 'ro' | 'rw'
+}
+
 export interface SecureClaudeConfig {
   tmpFolder: string
   configPath?: string
@@ -12,6 +17,8 @@ export interface SecureClaudeConfig {
   defaultAllow: boolean
   dnsServers: string
   proxy: { host: string, port: number, username: string, password: string } | 'NONE'
+  additionalVolumes: VolumeMount[]
+  deniedPaths: string[]
 }
 
 export async function loadConfig(): Promise<SecureClaudeConfig> {
@@ -20,7 +27,7 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
   const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
   if (!configExists) {
     console.debug(`No config file found at "${configPath}", using defaults`)
-    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE' }
+    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [] }
   }
 
   const raw = await fsp.readFile(configPath, 'utf8')
@@ -40,5 +47,7 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
     defaultAllow: parsedInput.defaultAllow ?? false,
     dnsServers: parsedInput.dnsServers ?? '1.1.1.1 8.8.8.8',
     proxy: parsedInput.proxy ?? 'NONE',
+    additionalVolumes: parsedInput.additionalVolumes ?? [],
+    deniedPaths: parsedInput.deniedPaths ?? [],
   }
 }

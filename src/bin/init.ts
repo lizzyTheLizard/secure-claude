@@ -2,7 +2,17 @@ import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { stringify } from 'yaml'
-import type { SecureClaudeConfig } from './config.js'
+import type { SecureClaudeConfig, VolumeMount } from './config.js'
+
+export const SENSITIVE_FILE_PATTERNS = [
+  /^\.env$/,
+  /^\.env\..+/,
+  /^local\.properties$/,
+  /\.pem$/,
+  /\.key$/,
+  /^application-local\.ya?ml$/,
+  /^secrets\..+/,
+]
 
 export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): Promise<void> {
   const configPath = path.join(cwd, 'secure-claude.yaml')
@@ -17,12 +27,18 @@ export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): P
       ? await collectDomainsAllowFirst(rl)
       : await collectDomainsRestrictedFirst(rl)
 
+    const proxy = await askProxy(rl)
+    const dnsServers = await askDnsServers(rl)
+    const additionalVolumes = await collectAdditionalVolumes(rl)
+    const deniedPaths = await collectDeniedPaths(cwd, additionalVolumes, rl)
     const config: Partial<SecureClaudeConfig> = {
       defaultAllow,
       allowedDomains,
       blockedDomains,
-      proxy: await askProxy(rl),
-      dnsServers: await askDnsServers(rl),
+      proxy,
+      dnsServers,
+      additionalVolumes,
+      deniedPaths,
     }
 
     await fsp.writeFile(configPath, stringify(config), 'utf8')
@@ -99,6 +115,39 @@ async function askDnsServers(rl: readline.Interface): Promise<string> {
     servers.push(server)
   }
   return servers.length > 0 ? servers.join(' ') : '1.1.1.1 8.8.8.8'
+}
+
+async function collectAdditionalVolumes(rl: readline.Interface): Promise<VolumeMount[]> {
+  console.log('Paths listed here will be accesible from Claude read only, including all subpath. Example: "/home/user/data" or "C:\\Users\\User\\Data".')
+  const readOnly = await collectList(rl, 'Additional read only volume path')
+  console.log('Paths listed here will be accesible from Claude read and writable, including all subpath. Example: "/home/user/data" or "C:\\Users\\User\\Data".')
+  const readWrite = await collectList(rl, 'Additional read and write volume path')
+  return [...readOnly.map<VolumeMount>(path => ({ path, mode: 'ro' })), ...readWrite.map<VolumeMount>(path => ({ path, mode: 'rw' }))]
+}
+
+async function collectDeniedPaths(cwd: string, additionalVolumes: VolumeMount[], rl: readline.Interface): Promise<string[]> {
+  const denied: string[] = []
+  denied.push(...await scanForSensitiveFiles(cwd, rl))
+  for (const vol of additionalVolumes) {
+    denied.push(...await scanForSensitiveFiles(vol.path, rl))
+  }
+  console.log('Paths listed here will be blocked from Claude. Use this if the parent path is allowed or the current working dir but you want to block specific subpaths. Example: "/home/user/data/.env" or "C:\\Users\\User\\Data\\.env".')
+  denied.push(...await collectList(rl, 'Denied path'))
+  return denied
+}
+
+export async function scanForSensitiveFiles(dir: string, rl: readline.Interface): Promise<string[]> {
+  const entries = await fsp.readdir(dir, { recursive: true }).catch(() => [])
+  const matched = entries.filter(entry => SENSITIVE_FILE_PATTERNS.some(pattern => pattern.test(path.basename(entry))))
+  if (matched.length === 0) return []
+  const denied: string[] = []
+  console.log(`Found potentially sensitive files in ${dir}. Confirm which to add to deniedPaths:`)
+  for (const entry of matched) {
+    const abs = path.join(dir, entry)
+    const answer = await ask(rl, `  Deny access to ${abs}? (Y/n) `)
+    if (answer.toLowerCase() !== 'n') denied.push(abs)
+  }
+  return denied
 }
 
 function ask(rl: readline.Interface, question: string): Promise<string> {
