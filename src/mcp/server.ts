@@ -1,0 +1,103 @@
+import * as http from 'node:http'
+import { spawn } from 'node:child_process'
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { z } from 'zod'
+import { CommandConfig, GIT_COMMANDS } from './commands.js'
+import { SecureClaudeConfig } from '../bin/config.js'
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js'
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node'
+import { Request, Response } from 'express'
+
+export function startMcpServer(config: SecureClaudeConfig): () => void {
+  const mcpServer = createMcpServer(config)
+  const httpServer = createHtttpServer(config, mcpServer)
+  console.log(`MCP server started on port ${config.mcpPort.toString()}`)
+
+  return () => {
+    console.debug('Stopping MCP server...')
+    mcpServer.close().catch((err: unknown) => {
+      if (err) console.error('Error closing MCP server:', err)
+      else console.debug('MCP server closed')
+    })
+    httpServer.close((err?: Error) => {
+      if (err) { console.error('Error closing HTTP server:', err) }
+      else { console.debug('HTTP server closed') }
+    })
+  }
+}
+
+function createMcpServer(config: SecureClaudeConfig): McpServer {
+  const mcpServer = new McpServer({ name: 'secure-claude-mcp-server', version: '1.0.0' })
+  const configuredCommands = (config as unknown as CommandConfig).commands
+  const commands = [...(config.enableGitCommands ? GIT_COMMANDS : []), ...(configuredCommands ?? [])]
+  commands.forEach((cmd) => { registerCommand(mcpServer, config, cmd) })
+  return mcpServer
+}
+
+function registerCommand(mcpServer: McpServer, config: SecureClaudeConfig, cmd: CommandConfig) {
+  mcpServer.registerTool(
+    cmd.name,
+    { description: cmd.description, inputSchema: getInputSchema(cmd) },
+    i => executeCommand(config, cmd, i),
+  )
+}
+
+function getInputSchema(cmd: CommandConfig): Record<string, z.ZodString | z.ZodNumber | z.ZodBoolean> {
+  const inputSchema: Record<string, z.ZodString | z.ZodNumber | z.ZodBoolean> = {}
+  for (const param of cmd.params) {
+    if (param.type === 'string') inputSchema[param.name] = z.string().describe(param.description)
+    else if (param.type === 'number') inputSchema[param.name] = z.number().describe(param.description)
+    else inputSchema[param.name] = z.boolean().describe(param.description)
+  }
+  return inputSchema
+}
+
+function executeCommand(config: SecureClaudeConfig, cmd: CommandConfig, inputs: Record<string, string | number | boolean>): Promise<{ content: { type: 'text', text: string }[] }> {
+  const tokens = cmd.template.split(' ')
+  const args = tokens.map((token) => {
+    const match = /^\{(\w+)\}$/.exec(token)
+    if (!match) return token
+    if (!Object.keys(inputs).includes(match[1]))
+      throw new Error(`Missing value for parameter "${match[1]}" in command "${cmd.name}"`)
+    return inputs[match[1]].toString()
+  })
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(args[0], args.slice(1), { cwd: config.cwd, stdio: 'pipe' })
+    const chunks: string[] = []
+    proc.stdout.on('data', (d: Buffer) => { chunks.push(d.toString()) })
+    proc.stderr.on('data', (d: Buffer) => { chunks.push(d.toString()) })
+    proc.on('error', (err) => { reject(new Error(`Failed to run command "${cmd.name}": ${err.message}`)) })
+    proc.on('close', () => { resolve({ content: [{ type: 'text' as const, text: chunks.join('') }] }) })
+  })
+}
+
+function createHtttpServer(config: SecureClaudeConfig, mcpServer: McpServer): http.Server {
+  const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+  mcpServer.connect(transport).catch((err: unknown) => { console.error('Error connecting MCP server to transport:', err) })
+
+  const app = createMcpExpressApp({ host: '0.0.0.0', allowedHosts: ['host.docker.internal', 'localhost'] })
+  app.get('/mcp', (_, res) => { res.writeHead(405).end() })
+  app.delete('/mcp', (_, res) => { res.writeHead(405).end() })
+  app.post('/mcp', (req, res) => { handleMcpRequest(req, res, transport) })
+  return app.listen(config.mcpPort, '0.0.0.0', (error) => {
+    if (error) console.error('Failed to start server:', error)
+    else console.debug(`MCP Server listening on port ${config.mcpPort.toString()}`)
+  })
+}
+
+function handleMcpRequest(req: Request, res: Response, transport: NodeStreamableHTTPServerTransport) {
+  transport.handleRequest(req, res, req.body).catch((err: unknown) => {
+    console.error('Error handling MCP request:', err)
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32_600,
+          message: 'Internal HTTP server error',
+        },
+        id: null,
+      })
+    }
+  })
+}

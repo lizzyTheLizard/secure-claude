@@ -4,6 +4,7 @@ import { loadConfig, SecureClaudeConfig } from './config.js'
 import { needsRegeneration } from './needsRegeneration.js'
 import { runInit } from './init.js'
 import { recreate } from './recreate.js'
+import { startMcpServer } from '../mcp/server.js'
 
 main().catch(handleError)
 
@@ -12,7 +13,13 @@ async function main() {
   await handleInit()
   const config = await loadConfig()
   await handleRegeneration(config)
-  await runClaude(config)
+  const stopMcpServer = startMcpServer(config)
+  try {
+    await runClaude(config)
+  }
+  finally {
+    stopMcpServer()
+  }
 }
 
 function handleLogging() {
@@ -35,7 +42,7 @@ async function handleRegeneration(config: SecureClaudeConfig) {
 }
 
 async function runClaude(config: SecureClaudeConfig) {
-  const args = ['compose', 'run', '--quiet', '--rm', 'claude', ...process.argv.slice(2)]
+  const args = ['compose', 'run', '--quiet', '--rm', 'claude', '--mcp-config', `${config.tmpFolder}/mcp-config.json`, ...process.argv.slice(2)]
   console.debug('Starting Claude container using ' + ['docker', ...args].join(' ') + ' in ' + config.tmpFolder)
   const claude = spawn('docker', args, { cwd: config.tmpFolder, stdio: 'inherit' })
   return new Promise<void>((resolve, reject) => {
