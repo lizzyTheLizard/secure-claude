@@ -7,9 +7,10 @@ import { SecureClaudeConfig } from '../bin/config.js'
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js'
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node'
 import { Request, Response } from 'express'
+import { PluginFunction, PluginTool } from '../plugin/plugin.js'
 
 export async function startMcpServer(config: SecureClaudeConfig): Promise<() => void> {
-  const mcpServer = createMcpServer(config)
+  const mcpServer = await createMcpServer(config)
   const httpServer = createHtttpServer(config, mcpServer)
 
   await new Promise<void>((resolve, reject) => {
@@ -30,13 +31,38 @@ export async function startMcpServer(config: SecureClaudeConfig): Promise<() => 
   }
 }
 
-function createMcpServer(config: SecureClaudeConfig): McpServer {
+async function createMcpServer(config: SecureClaudeConfig): Promise<McpServer> {
   const mcpServer = new McpServer({ name: 'secure-claude-mcp-server', version: '1.0.0' })
   const configuredCommands = (config as unknown as CommandConfig).commands
   const commands = [...(config.enableGitCommands ? GIT_COMMANDS : []), ...(configuredCommands ?? [])]
   console.debug(`Registering ${commands.length.toString()} commands with MCP server`)
   commands.forEach((cmd) => { registerCommand(mcpServer, config, cmd) })
+
+  for (const plugin of config.plugins) {
+    const tools = await getPluginTools(plugin)
+    tools.forEach((tool) => { registerPluginTool(mcpServer, tool) })
+  }
   return mcpServer
+}
+
+async function getPluginTools(plugin: { type: string }): Promise<PluginTool[]> {
+  console.debug(`Loading plugin of type "${plugin.type}"`)
+  if (plugin.type === 'github') {
+    const pluginModule = await import('../plugin/github/index.js')
+    const fn: PluginFunction = pluginModule.default
+    return fn(plugin)
+  }
+  console.warn(`Unknown plugin type "${plugin.type}" — skipping`)
+  return []
+}
+
+function registerPluginTool(mcpServer: McpServer, tool: PluginTool): void {
+  console.debug(`Registering plugin tool "${tool.name}"`)
+  mcpServer.registerTool(
+    tool.name,
+    { description: tool.description, inputSchema: tool.inputSchema ?? {} },
+    input => tool.execute(input),
+  )
 }
 
 function registerCommand(mcpServer: McpServer, config: SecureClaudeConfig, cmd: CommandConfig) {
