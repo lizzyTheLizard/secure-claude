@@ -12,7 +12,7 @@ afterEach(async () => {
 
 describe('MCP host command execution', () => {
   it('git_status tool returns output from the host git repository', async () => {
-    testDir = await createTestDir({ enableGitCommands: true })
+    testDir = await createTestDir({ plugins: [{ type: 'git' }] })
     await spawnHelper('git init', 'git', ['init'], testDir)
     await runSecureClaude(
       testDir,

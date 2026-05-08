@@ -21,7 +21,6 @@ export interface SecureClaudeConfig {
   additionalVolumes: VolumeMount[]
   deniedPaths: string[]
   mcpPort: number
-  enableGitCommands: boolean
   plugins: { type: string }[]
   cwd: string
 }
@@ -32,7 +31,7 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
   const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
   if (!configExists) {
     console.debug(`No config file found at "${configPath}", using defaults`)
-    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [], mcpPort: DEFAULT_MCP_PORT, enableGitCommands: true, plugins: [], cwd: cwd }
+    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [], mcpPort: DEFAULT_MCP_PORT, plugins: [], cwd: cwd }
   }
 
   const raw = await fsp.readFile(configPath, 'utf8')
@@ -55,7 +54,6 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
     additionalVolumes: parsedInput.additionalVolumes ?? [],
     deniedPaths: parsedInput.deniedPaths ?? [],
     mcpPort: parsedInput.mcpPort ?? DEFAULT_MCP_PORT,
-    enableGitCommands: parsedInput.enableGitCommands ?? true,
     plugins: parsedInput.plugins ?? [],
     cwd,
   }
