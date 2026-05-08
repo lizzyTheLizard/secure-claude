@@ -14,6 +14,7 @@ describe('MCP host command execution', () => {
   it('git_status tool returns output from the host git repository', async () => {
     testDir = await createTestDir({ plugins: [{ type: 'git' }] })
     await spawnHelper('git init', 'git', ['init'], testDir)
+    await outputMcpConfigFiles(testDir)
     await runSecureClaude(
       testDir,
       'Output a list of all MCP server you have access to and their status.Use the git_status MCP tool and write its output to a file called STATUS.txt in the current directory. '
@@ -29,4 +30,9 @@ describe('MCP host command execution', () => {
 export async function runCurl(dir: string): Promise<void> {
   const tmpFolder = path.join(dir, '.secureclaude')
   await spawnHelper('Run Curl', 'docker', ['compose', 'run', '--rm', '--entrypoint', 'curl', 'claude', '-v', 'https://host.docker.internal:9418'], tmpFolder)
+}
+
+export async function outputMcpConfigFiles(dir: string): Promise<void> {
+  const tmpFolder = path.join(dir, '.secureclaude')
+  await spawnHelper('Output MCP config files', 'docker', ['compose', 'run', '--rm', '--entrypoint', 'sh', 'claude', '-c', 'ls -la /config && cat /config/git.yaml'], tmpFolder)
 }
