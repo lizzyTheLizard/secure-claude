@@ -1,3 +1,4 @@
+name: ${NAME}
 services:
   claude:
     build:
@@ -26,13 +27,17 @@ ${ADDITIONAL_VOLUMES}
     networks:
       intnet: {}
     depends_on:
-    - httpproxy
+      httpproxy:
+        condition: service_healthy
+
 
   httpproxy:
-    image: ubuntu/squid:latest
+    build:
+      context: .
+      dockerfile_inline: |
+          FROM ubuntu/squid:latest
+          RUN apt-get update && apt-get install -y curl
     restart: unless-stopped
-    ports:
-      - "3128:3128"
     volumes:
       - ./squid.conf:/etc/squid/squid.conf:ro
       - ./whitelist.txt:/etc/squid/whitelist.txt:ro
@@ -42,6 +47,12 @@ ${ADDITIONAL_VOLUMES}
     networks:
       intnet: {}
       extnet: {}
+    healthcheck:
+      test: ["CMD", "curl", "-sSf", "--proxy", "http://localhost:3128", "http://host.docker.internal:${MCP_PORT}/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   intnet:

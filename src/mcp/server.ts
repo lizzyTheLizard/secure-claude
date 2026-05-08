@@ -105,6 +105,7 @@ function createHtttpServer(config: SecureClaudeConfig, mcpServer: McpServer): ht
   mcpServer.connect(transport).catch((err: unknown) => { console.error('Error connecting MCP server to transport:', err) })
 
   const app = createMcpExpressApp({ host: '0.0.0.0', allowedHosts: ['host.docker.internal', 'localhost'] })
+  app.get('/ping', (_, res) => { res.writeHead(200).end('MCP Server is running') })
   app.get('/mcp', (_, res) => { res.writeHead(405).end() })
   app.delete('/mcp', (_, res) => { res.writeHead(405).end() })
   app.post('/mcp', (req, res) => { handleMcpRequest(req, res, transport) })
