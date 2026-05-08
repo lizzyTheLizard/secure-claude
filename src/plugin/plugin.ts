@@ -13,4 +13,9 @@ export interface PluginTool {
   execute: (input: Record<string, unknown>) => Promise<McpToolResult>
 }
 
-export type PluginFunction = (raw: { type: string }) => PluginTool[]
+export type PluginFunction = (raw: { type: string }, context: PluginContext) => PluginTool[]
+
+export interface PluginContext {
+  cwd: string
+  configPath?: string
+}

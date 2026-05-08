@@ -1,8 +1,7 @@
 import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import { z } from 'zod'
-import { PluginTool } from '../plugin.js'
-import { SecureClaudeConfig } from '../../bin/config.js'
+import { PluginContext, PluginTool } from '../plugin.js'
 
 export interface CustomPluginConfig {
   type: 'custom'
@@ -17,8 +16,8 @@ const customPluginToolSchema = z.object({
   execute: z.function(),
 })
 
-export async function loadCustomPlugin(config: SecureClaudeConfig, raw: CustomPluginConfig): Promise<PluginTool[]> {
-  const resolvedPath = resolvePath(config, raw.path)
+export async function loadCustomPlugin(context: PluginContext, raw: CustomPluginConfig): Promise<PluginTool[]> {
+  const resolvedPath = resolvePath(context, raw.path)
   try {
     const fn = await importPluginFunction(resolvedPath)
     const tools = callAndValidate(fn, raw, resolvedPath)
@@ -30,8 +29,8 @@ export async function loadCustomPlugin(config: SecureClaudeConfig, raw: CustomPl
   }
 }
 
-function resolvePath(config: SecureClaudeConfig, pluginPath: string): string {
-  const baseDir = config.configPath ? path.dirname(config.configPath) : config.cwd
+function resolvePath(context: PluginContext, pluginPath: string): string {
+  const baseDir = context.configPath ? path.dirname(context.configPath) : context.cwd
   return path.resolve(baseDir, pluginPath)
 }
 
