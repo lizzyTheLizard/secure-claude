@@ -26,13 +26,16 @@ export interface SecureClaudeConfig {
   cwd: string
 }
 
+const cwd = process.cwd()
+const configPath = path.join(cwd, 'secure-claude.yaml')
+
+export async function configExists(): Promise<boolean> {
+  return await fsp.access(configPath).then(() => true).catch(() => false)
+}
+
 export async function loadConfig(): Promise<SecureClaudeConfig> {
-  const cwd = process.cwd()
-  const configPath = path.join(cwd, 'secure-claude.yaml')
-  const configExists = await fsp.access(configPath).then(() => true).catch(() => false)
-  if (!configExists) {
-    console.debug(`No config file found at "${configPath}", using defaults`)
-    return { tmpFolder: path.join(cwd, DEFAULT_TMP_FOLDER), allowedDomains: [], blockedDomains: [], defaultAllow: false, dnsServers: '1.1.1.1 8.8.8.8', proxy: 'NONE', additionalVolumes: [], deniedPaths: [], mcpPort: DEFAULT_MCP_PORT, plugins: [], cwd: cwd, projectName: path.basename(cwd) }
+  if (!await configExists()) {
+    throw new Error(`No config file found at "${configPath}". Run "secure-claude init" to create one.`)
   }
 
   const raw = await fsp.readFile(configPath, 'utf8')
