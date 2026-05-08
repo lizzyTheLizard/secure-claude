@@ -23,4 +23,30 @@ describe('MCP host command execution', () => {
     if (!status.includes('nothing to commit') && !status.includes('Untracked files') && !status.includes('No commits yet'))
       throw new Error(`Unexpected git status output: ${status}`)
   }, 120000)
+
+  it('custom wget command fetches a URL and returns its output', async () => {
+    testDir = await createTestDir({
+      plugins: [
+        {
+          type: 'commands',
+          commands: [
+            {
+              name: 'wget_url',
+              description: 'Fetch the contents of a URL using wget',
+              template: 'wget -q -O - {url}',
+              params: [{ name: 'url', type: 'string', description: 'The URL to fetch' }],
+            },
+          ],
+        },
+      ],
+    })
+    await runSecureClaude(
+      testDir,
+      'Use the wget_url MCP tool to fetch https://example.com and write its output to a file called WGET.txt in the current directory. '
+      + 'Output a short success message when done.',
+    )
+    const content = fs.readFileSync(path.join(testDir, 'WGET.txt'), 'utf8')
+    if (!content.includes('Example Domain'))
+      throw new Error(`Unexpected wget output: ${content}`)
+  }, 120000)
 })
