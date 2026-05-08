@@ -23,6 +23,7 @@ async function recreateTmpDir(config: SecureClaudeConfig): Promise<void> {
   await copyComposeTemplate(config)
   await recreateHttpProxy(config)
   await writeMcpConfig(config)
+  await generateSystemPromptFile(config)
   await writeManifest(config)
   console.debug('Recreation of ' + config.tmpFolder + ' complete in ' + ((Date.now() - startTime) / 1000).toFixed(2) + 's')
 }
@@ -107,4 +108,28 @@ async function buildDockerVolume(): Promise<void> {
 async function buildDockerImage(config: SecureClaudeConfig) {
   console.debug('Creating Docker image "claude"...')
   await spawnHelper('Create docker image', 'docker', ['compose', 'build'], config.tmpFolder)
+}
+
+async function generateSystemPromptFile(config: SecureClaudeConfig): Promise<string> {
+  let content = `
+    You are running inside a secure sandbox environment managed by secure-claude. 
+    You have limited internet access, access to the current working dir and certain additional folders and a limited set of commands via a mcp server. 
+    The sandbox is configured with the following settings:
+    - Network policy: ${config.defaultAllow ? 'ALLOW BY DEFAULT' : 'DENY BY DEFAULT'}
+    - Whitelisted domains: ${config.allowedDomains.length > 0 ? config.allowedDomains.join(', ') : 'none'}
+    - Blacklisted domains: ${config.blockedDomains.length > 0 ? config.blockedDomains.join(', ') : 'none'}
+    - Current working directory: ${config.cwd}
+    - Available filesystem paths: ${config.additionalVolumes.length > 0 ? config.additionalVolumes.map(v => `${v.path} (${v.mode})`).join(', ') : 'none'}
+    - Denied filesystem paths: ${config.deniedPaths.length > 0 ? config.deniedPaths.join(', ') : 'none'}
+  `
+
+  if (config.plugins.length > 0) {
+    content += `
+    Beside this, you have access to the following commands via a MCP server running on http://host.docker.internal:${config.mcpPort.toString()}:
+    ${config.plugins.map(p => `- ${p.type}`).join('\n$ ')}
+  `
+  }
+  const filePath = path.join(config.tmpFolder, 'system-prompt.txt')
+  await fsp.writeFile(filePath, content, 'utf8')
+  return filePath
 }
