@@ -19,17 +19,8 @@ export async function startMcpServer(config: SecureClaudeConfig): Promise<() => 
     httpServer.on('error', (err) => { reject(new Error(`Failed to start MCP server: ${err.message}`)) })
   })
 
-  return () => {
-    console.debug('Stopping MCP server...')
-    mcpServer.close().catch((err: unknown) => {
-      if (err) console.error('Error closing MCP server:', err)
-      else console.debug('MCP server closed')
-    })
-    httpServer.close((err?: Error) => {
-      if (err) { console.error('Error closing HTTP server:', err) }
-      else { console.debug('HTTP server closed') }
-    })
-  }
+  await checkServer(config.mcpPort)
+  return () => { shutdownServer(httpServer, mcpServer) }
 }
 
 async function createMcpServer(config: SecureClaudeConfig): Promise<McpServer> {
@@ -136,5 +127,57 @@ function handleMcpRequest(req: Request, res: Response, transport: NodeStreamable
         id: null,
       })
     }
+  })
+}
+
+async function checkServer(port: number): Promise<void> {
+  for (let iteration = 0; iteration <= 10; iteration += 1) {
+    const statusCode = await checkStatusCode(port)
+    if (statusCode === 406) {
+      console.debug('MCP server is ready and takes requests!')
+      return
+    }
+    if (iteration < 10) {
+      console.debug('MCP server not ready yet, waiting 1 second before retrying...')
+      await new Promise<void>((r) => {
+        setTimeout(r, 1000)
+      })
+    }
+  }
+  throw new Error('MCP server not ready after 10 attempts')
+}
+
+function checkStatusCode(port: number): Promise<number | undefined> {
+  return new Promise<number | undefined>((resolve) => {
+    const req = http.request(`http://localhost:${port.toString()}/mcp`, { method: 'POST', timeout: 1000 }, (res) => {
+      resolve(res.statusCode)
+    })
+
+    req.on('socket', function (socket) {
+      socket.setTimeout(1000)
+      socket.on('timeout', function () {
+        req.destroy()
+      })
+    })
+
+    req.on('error', function (err) {
+      console.debug('MCP server not ready yet, error connecting', err)
+      resolve(undefined)
+    })
+
+    req.write('something')
+    req.end()
+  })
+}
+
+function shutdownServer(httpServer: http.Server, mcpServer: McpServer): void {
+  console.debug('Stopping MCP server...')
+  mcpServer.close().catch((err: unknown) => {
+    if (err) console.error('Error closing MCP server:', err)
+    else console.debug('MCP server closed')
+  })
+  httpServer.close((err?: Error) => {
+    if (err) { console.error('Error closing HTTP server:', err) }
+    else { console.debug('HTTP server closed') }
   })
 }
