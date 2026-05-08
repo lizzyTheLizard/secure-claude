@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process'
+import { configExists, loadConfig, SecureClaudeConfig } from './config.js'
 import * as path from 'node:path'
-import { loadConfig, SecureClaudeConfig } from './config.js'
 import { needsRegeneration } from './needsRegeneration.js'
 import { runInit } from './init.js'
 import { recreate } from './recreate.js'
@@ -31,9 +31,14 @@ function handleLogging() {
 }
 
 async function handleInit() {
-  if (process.argv[2] !== 'init') return
-  await runInit()
-  process.exit(0)
+  if (process.argv[2] === 'init') {
+    await runInit()
+    process.exit(0)
+  }
+  if (!await configExists()) {
+    console.info('No config file found. Running "secure-claude init" to create one...')
+    await runInit()
+  }
 }
 
 async function handleRegeneration(config: SecureClaudeConfig) {
