@@ -31,6 +31,25 @@ jobs:
       - name: Unit tests
         run: pnpm vitest run --reporter=verbose .unit.test
 
+  integrationtest:
+    runs-on: ubuntu-latest
+    name: Integration tests
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
       - name: Cache Docker layers
         uses: actions/cache@v5
         with:

@@ -25,6 +25,7 @@ export async function runSecureClaude(dir: string, prompt: string): Promise<void
 export async function cleanup(dir: string): Promise<void> {
   const tmpFolder = path.join(dir, '.secureclaude')
   await spawnHelper('Kill docker compose', 'docker', ['compose', 'kill', '--remove-orphans'], tmpFolder)
+  await spawnHelper('Prune volumes', 'docker', ['volume', 'prune', '-f'], tmpFolder)
   const exists = await fsp.access(tmpFolder).then(() => true).catch(() => false)
   if (exists) {
     await fsp.rm(dir, { recursive: true, force: true })

@@ -32,7 +32,14 @@ async function copyComposeTemplate(config: SecureClaudeConfig): Promise<void> {
   const templatePath = path.join(__dirname, 'docker-compose.yaml.template')
   let content = await fsp.readFile(templatePath, 'utf8')
   const additionalVolumes = await buildAdditionalVolumes(config)
-  const vars: Record<string, string> = { USER: USER, UID: UID, CWD: process.cwd(), ADDITIONAL_VOLUMES: additionalVolumes, MCP_PORT: String(config.mcpPort) }
+  const vars: Record<string, string> = {
+    USER: USER,
+    UID: UID,
+    CWD: process.cwd(),
+    ADDITIONAL_VOLUMES: additionalVolumes,
+    MCP_PORT: config.mcpPort.toString(),
+    NAME: config.projectName,
+  }
   for (const [key, value] of Object.entries(vars)) {
     content = content.replaceAll(`\${${key}}`, value)
   }
