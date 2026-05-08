@@ -8,6 +8,7 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node'
 import { Request, Response } from 'express'
 import { PluginFunction, PluginTool } from '../plugin/plugin.js'
+import { CustomPluginConfig } from '../plugin/custom/index.js'
 
 export async function startMcpServer(config: SecureClaudeConfig): Promise<() => void> {
   const mcpServer = await createMcpServer(config)
@@ -39,18 +40,22 @@ async function createMcpServer(config: SecureClaudeConfig): Promise<McpServer> {
   commands.forEach((cmd) => { registerCommand(mcpServer, config, cmd) })
 
   for (const plugin of config.plugins) {
-    const tools = await getPluginTools(plugin)
+    const tools = await getPluginTools(config, plugin)
     tools.forEach((tool) => { registerPluginTool(mcpServer, tool) })
   }
   return mcpServer
 }
 
-async function getPluginTools(plugin: { type: string }): Promise<PluginTool[]> {
+async function getPluginTools(config: SecureClaudeConfig, plugin: { type: string }): Promise<PluginTool[]> {
   console.debug(`Loading plugin of type "${plugin.type}"`)
   if (plugin.type === 'github') {
     const pluginModule = await import('../plugin/github/index.js')
     const fn: PluginFunction = pluginModule.default
     return fn(plugin)
+  }
+  if (plugin.type === 'custom') {
+    const { loadCustomPlugin } = await import('../plugin/custom/index.js')
+    return loadCustomPlugin(config, plugin as CustomPluginConfig)
   }
   console.warn(`Unknown plugin type "${plugin.type}" — skipping`)
   return []
