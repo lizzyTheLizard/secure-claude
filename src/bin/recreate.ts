@@ -12,12 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const USER = os.userInfo().username
 const UID = String(os.userInfo().uid)
 
-export async function recreate(config: SecureClaudeConfig): Promise<void> {
-  await recreateTmpDir(config)
-  await recreateDockerContainers(config)
-}
-
-async function recreateTmpDir(config: SecureClaudeConfig): Promise<void> {
+export async function recreateTmpDir(config: SecureClaudeConfig): Promise<void> {
   const startTime = Date.now()
   await fsp.mkdir(config.tmpFolder, { recursive: true })
   await copyComposeTemplate(config)
@@ -93,7 +88,7 @@ async function writeManifest(config: SecureClaudeConfig): Promise<void> {
   )
 }
 
-async function recreateDockerContainers(config: SecureClaudeConfig): Promise<void> {
+export async function recreateDockerContainers(config: SecureClaudeConfig): Promise<void> {
   const startTime = Date.now()
   await buildDockerVolume()
   await buildDockerImage(config)
