@@ -4,7 +4,7 @@ import { configExists, loadConfig, SecureClaudeConfig } from './config.js'
 import * as path from 'node:path'
 import { needsRegeneration } from './needsRegeneration.js'
 import { runInit } from './init.js'
-import { recreate } from './recreate.js'
+import { recreateTmpDir, recreateDockerContainers } from './recreate.js'
 import { startMcpServer } from '../mcp/server.js'
 
 main().catch(handleError)
@@ -44,7 +44,8 @@ async function handleInit() {
 async function handleRegeneration(config: SecureClaudeConfig) {
   const needsRecreation = await needsRegeneration(config.tmpFolder, config.configPath)
   if (!needsRecreation) return
-  await recreate(config)
+  await recreateTmpDir(config)
+  await recreateDockerContainers(config)
 }
 
 async function runClaude(config: SecureClaudeConfig) {

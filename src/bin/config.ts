@@ -2,9 +2,6 @@ import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import { parse } from 'yaml'
 
-const DEFAULT_TMP_FOLDER = '.secureclaude'
-const DEFAULT_MCP_PORT = 9418
-
 export interface VolumeMount {
   path: string
   mode: 'ro' | 'rw'
@@ -26,15 +23,31 @@ export interface SecureClaudeConfig {
   cwd: string
 }
 
-const cwd = process.cwd()
-const configPath = path.join(cwd, 'secure-claude.yaml')
+export const DEFAULT_CONFIG: SecureClaudeConfig = {
+  projectName: path.basename(process.cwd()),
+  tmpFolder: path.join(process.cwd(), '.secureclaude'),
+  allowedDomains: [],
+  blockedDomains: [],
+  defaultAllow: false,
+  dnsServers: '1.1.1.1 8.8.8.8',
+  proxy: 'NONE',
+  additionalVolumes: [],
+  deniedPaths: [],
+  mcpPort: 9418,
+  plugins: [],
+  cwd: process.cwd(),
+}
 
-export async function configExists(): Promise<boolean> {
+export async function configExists(dir?: string): Promise<boolean> {
+  const cwd = dir ?? process.cwd()
+  const configPath = path.join(cwd, 'secure-claude.yaml')
   return await fsp.access(configPath).then(() => true).catch(() => false)
 }
 
-export async function loadConfig(): Promise<SecureClaudeConfig> {
-  if (!await configExists()) {
+export async function loadConfig(dir?: string): Promise<SecureClaudeConfig> {
+  const cwd = dir ?? process.cwd()
+  const configPath = path.join(cwd, 'secure-claude.yaml')
+  if (!await configExists(cwd)) {
     throw new Error(`No config file found at "${configPath}". Run "secure-claude init" to create one.`)
   }
 
@@ -47,19 +60,10 @@ export async function loadConfig(): Promise<SecureClaudeConfig> {
   const parsedInput = parsed as Partial<SecureClaudeConfig>
   console.debug(`Loaded config from "${configPath}":`, parsedInput)
   return {
-    ...parsedInput,
-    tmpFolder: parsedInput.tmpFolder ?? path.join(process.cwd(), DEFAULT_TMP_FOLDER),
-    configPath,
-    allowedDomains: parsedInput.allowedDomains ?? [],
-    blockedDomains: parsedInput.blockedDomains ?? [],
-    defaultAllow: parsedInput.defaultAllow ?? false,
-    dnsServers: parsedInput.dnsServers ?? '1.1.1.1 8.8.8.8',
-    proxy: parsedInput.proxy ?? 'NONE',
-    additionalVolumes: parsedInput.additionalVolumes ?? [],
-    deniedPaths: parsedInput.deniedPaths ?? [],
-    mcpPort: parsedInput.mcpPort ?? DEFAULT_MCP_PORT,
-    plugins: parsedInput.plugins ?? [],
-    cwd,
+    ...DEFAULT_CONFIG,
     projectName: path.basename(cwd),
+    ...parsedInput,
+    configPath,
+    cwd,
   }
 }
