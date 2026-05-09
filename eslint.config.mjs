@@ -10,7 +10,7 @@ export default defineConfig([
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   stylistic.configs.recommended,
-  globalIgnores(['dist/**']),
+  globalIgnores(['dist/**', '.claude/**']),
   {
     languageOptions: {
       globals: {
