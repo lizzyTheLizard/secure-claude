@@ -1,13 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. See [README.md](README.md) for general documentation, architecture overview, and the release process.
 
 ## Commands
 
 ```bash
 pnpm build        # tsc + copy non-TS assets (templates, squid.conf) into dist/
 pnpm lint         # eslint across the whole project
-pnpm start        # node dist/bin/index.js recreate  (forces regeneration)
+pnpm start        # node dist/bin/index.js (run from dist/ without installing globally)
 pnpm test         # run all tests (unit + integration; integration requires working claude instance + Docker)
 pnpm test:watch   # vitest watch mode
 ```
@@ -28,39 +28,14 @@ Tests live in `tests/` and are run with vitest. Two naming conventions are used:
 
 ## Architecture
 
-The tool wraps Claude Code in a Docker Compose stack that enforces network policy via a Squid HTTP proxy. The user runs `node dist/bin/index.js` (or `pnpm start`) from any project directory. The entry point:
+See README.md for the architecture overview and network topology.
 
-1. **Loads config** from `secure-claude.yaml` in `process.cwd()`, falling back to safe defaults (`defaultAllow: false`, Cloudflare/Google DNS, no proxy).
-2. **Detects whether regeneration is needed** (`needsRegeneration.ts`) by comparing a `.manifest.json` stamp against the config file's mtime. Also triggered by the `recreate` CLI argument or a missing/empty `tmpFolder`.
-3. **Regenerates files** into `tmpFolder` (default `.secureclaude/`):
-   - `docker-compose.yaml` — templated from `src/bin/docker-compose.yaml.template`, substituting `${USER}`, `${UID}`, `${CWD}`.
-   - `squid.conf` — templated from `src/httpproxy/squid.conf.template`, substituting `${ACCESS_RULES}`, `${DNS_SERVERS}`, `${PROXY_RULES}`.
-   - Docker image is built via `docker compose build`.
-4. **Runs Claude** via `docker compose run --rm claude <args>`, passing all CLI arguments after any consumed `recreate` token.
+Key implementation details for navigating the code:
 
-### Network topology
+- **Config loading & defaults** — `src/bin/config.ts`
+- **Regeneration check** — `src/bin/needsRegeneration.ts` (compares `.manifest.json` stamp against config mtime)
+- **Docker Compose generation** — `src/bin/recreate.ts` + `src/bin/docker-compose.yaml.template` (substitutes `${USER}`, `${UID}`, `${CWD}`)
+- **Squid config generation** — `src/httpproxy/recreateHttpProxy.ts` + `src/httpproxy/squid.conf.template` (substitutes `${ACCESS_RULES}`, `${DNS_SERVERS}`, `${PROXY_RULES}`)
+- **MCP server** — `src/mcp/server.ts` hosts plugins inside the container; config written by `src/mcp/recreateMcpConfig.ts`
 
-```
-Claude container ──► Squid (httpproxy) ──► extnet ──► internet
-                      intnet only              └─ extnet
-```
-
-`intnet` is Docker-internal; only `httpproxy` has `extnet` access. Claude traffic therefore must pass through Squid.
-
-### Config schema (`secure-claude.yaml`)
-
-| Field | Type | Default | Purpose |
-|---|---|---|---|
-| `tmpFolder` | string | `.secureclaude` | Where generated files land |
-| `defaultAllow` | boolean | `false` | Squid default policy (deny-all vs allow-all) |
-| `allowedDomains` | string[] | `[]` | Squid whitelist ACL |
-| `blockedDomains` | string[] | `[]` | Squid blacklist ACL |
-| `dnsServers` | string | `"1.1.1.1 8.8.8.8"` | Space-separated DNS IPs for Squid |
-| `proxy` | object | — | Upstream proxy (`host`, `port`, `username`, `password`) |
-
-When `defaultAllow: false`, access order is: deny blacklist → allow whitelist → allow localhost → deny all.  
-When `defaultAllow: true`, access order is: allow whitelist → deny blacklist → allow all.
-
-### Template substitution
-
-Templates use `${VAR}` placeholders replaced with `String.replaceAll`. Adding a new config knob means: update `SecureClaudeConfig`, update `loadConfig` defaults, add logic in `recreateHttpProxy.ts` or `recreate.ts`, update the relevant template, and update the manifest if cache invalidation should be tied to it.
+Adding a new config knob: update `SecureClaudeConfig` in `config.ts`, add a default in `loadConfig`, add generation logic in `recreateHttpProxy.ts` or `recreate.ts`, update the relevant template, and update the manifest fields if cache invalidation should be tied to it.
