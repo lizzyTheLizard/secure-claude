@@ -2,12 +2,7 @@ import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import { z } from 'zod'
 import { PluginContext, PluginTool } from '../plugin.js'
-
-export interface CustomPluginConfig {
-  type: 'custom'
-  path: string
-  [key: string]: unknown
-}
+import { CustomPluginConfig } from './config.js'
 
 const customPluginToolSchema = z.object({
   name: z.string().min(1),

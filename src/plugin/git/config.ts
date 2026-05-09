@@ -22,7 +22,7 @@ export interface GitPluginConfig {
     enabled?: GitToolNames[]
     blocked?: GitToolNames[]
   }
-  branches?: {
-    pattern?: string
+  filters?: {
+    branches?: string[]
   }
 }

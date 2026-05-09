@@ -19,14 +19,14 @@ const gitPlugin: PluginFunction = (raw, context) => {
 }
 
 async function executeTool(config: GitPluginConfig, context: PluginContext, tool: GitTool, input: Record<string, unknown>) {
-  if (tool.branchParam && config.branches?.pattern) {
+  if (tool.branchParam && config.filters?.branches) {
     const branch = input[tool.branchParam] as string
-    if (!new RegExp(config.branches.pattern).test(branch))
-      throw new Error(`Git plugin: branch "${branch}" does not match allowed pattern "${config.branches.pattern}"`)
+    if (!new RegExp(config.filters.branches.join('|')).test(branch))
+      throw new Error(`Git plugin: branch "${branch}" does not match allowed pattern "${config.filters.branches.join('|')}"`)
   }
   const result = await tool.execute(context.cwd, input)
-  if (tool.filterOutputByBranch && config.branches?.pattern) {
-    const pattern = new RegExp(config.branches.pattern)
+  if (tool.filterOutputByBranch && config.filters?.branches) {
+    const pattern = new RegExp(config.filters.branches.join('|'))
     return {
       ...result,
       content: result.content.map((c) => {

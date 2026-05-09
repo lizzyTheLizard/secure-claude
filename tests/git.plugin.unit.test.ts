@@ -78,7 +78,7 @@ describe('GIT_TOOLS', () => {
 
 describe('branch filtering', () => {
   it('throws when branch does not match pattern (git_checkout)', async () => {
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^main$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_checkout')
     if (!t) throw new Error('git_checkout not found')
@@ -87,7 +87,7 @@ describe('branch filtering', () => {
   })
 
   it('throws for git_branch_delete when branch does not match', async () => {
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^(main|develop)$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$', '^develop$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_branch_delete')
     if (!t) throw new Error('git_branch_delete not found')
@@ -96,7 +96,7 @@ describe('branch filtering', () => {
   })
 
   it('throws for git_merge when branch does not match', async () => {
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^main$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_merge')
     if (!t) throw new Error('git_merge not found')
@@ -106,7 +106,7 @@ describe('branch filtering', () => {
 
   it('allows branch when it matches the pattern', async () => {
     vi.mocked(spawn).mockReturnValue(makeFakeProcess())
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^main$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_checkout')
     if (!t) throw new Error('git_checkout not found')
@@ -125,7 +125,7 @@ describe('branch filtering', () => {
 
   it('does not filter branches for non-branch tools', async () => {
     vi.mocked(spawn).mockReturnValue(makeFakeProcess())
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^main$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_status')
     if (!t) throw new Error('git_status not found')
@@ -152,7 +152,7 @@ describe('git_branch_list output filtering', () => {
   it('filters output to only matching branches', async () => {
     const branchOutput = '  main\n* develop\n  feature/foo\n'
     vi.mocked(spawn).mockReturnValue(makeFakeProcess(branchOutput))
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^(main|develop)$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$', '^develop$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_branch_list')
     if (!t) throw new Error('git_branch_list not found')
@@ -165,7 +165,7 @@ describe('git_branch_list output filtering', () => {
   it('preserves the current branch marker (*) for matching branches', async () => {
     const branchOutput = '* main\n  develop\n  feature/foo\n'
     vi.mocked(spawn).mockReturnValue(makeFakeProcess(branchOutput))
-    const config: GitPluginConfig = { ...BASE_CONFIG, branches: { pattern: '^main$' } }
+    const config: GitPluginConfig = { ...BASE_CONFIG, filters: { branches: ['^main$'] } }
     const tools = gitPlugin(config, CONTEXT)
     const t = tools.find(t => t.name === 'git_branch_list')
     if (!t) throw new Error('git_branch_list not found')

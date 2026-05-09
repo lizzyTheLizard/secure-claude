@@ -31,6 +31,7 @@ export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): P
     const dnsServers = await askDnsServers(rl)
     const additionalVolumes = await collectAdditionalVolumes(rl)
     const deniedPaths = await collectDeniedPaths(cwd, additionalVolumes, rl)
+    const plugins = await collectPlugins(cwd, rl)
     const config: Partial<SecureClaudeConfig> = {
       defaultAllow,
       allowedDomains,
@@ -39,6 +40,7 @@ export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): P
       dnsServers,
       additionalVolumes,
       deniedPaths,
+      plugins,
     }
 
     await fsp.writeFile(configPath, stringify(config), 'utf8')
@@ -148,6 +150,15 @@ export async function scanForSensitiveFiles(dir: string, rl: readline.Interface)
     if (answer.toLowerCase() !== 'n') denied.push(abs)
   }
   return denied
+}
+
+async function collectPlugins(cwd: string, rl: readline.Interface): Promise<{ type: string }[]> {
+  // For now we just return the git plugin if a .git folder is found, but this could be extended in the future to support more plugins and more complex configuration.
+  const isGitRepo = await fsp.access(path.join(cwd, '.git')).then(() => true).catch(() => false)
+  if (!isGitRepo) return []
+  const answer = await ask(rl, 'Git repository detected. Enable Git plugin (allows claude to run git commands)? (Y/n) ')
+  if (answer.toLowerCase() === 'n') return []
+  return [{ type: 'git' }]
 }
 
 function ask(rl: readline.Interface, question: string): Promise<string> {
