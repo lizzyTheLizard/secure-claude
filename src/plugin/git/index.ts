@@ -1,8 +1,8 @@
 import { ALL_GIT_TOOL_NAMES, GitPluginConfig, GitToolNames } from './config.js'
 import { GIT_TOOLS, GitTool } from './tools.js'
-import { PluginContext, PluginFunction } from '../plugin.js'
+import { PluginContext } from '../plugin.js'
 
-const gitPlugin: PluginFunction = (raw, context) => {
+const gitPlugin = (raw: { type: string }, context: PluginContext) => {
   const config = raw as GitPluginConfig
   const toolNames = new Set<GitToolNames>(config.tools?.enabled ?? [...ALL_GIT_TOOL_NAMES])
   for (const blocked of config.tools?.blocked ?? []) {

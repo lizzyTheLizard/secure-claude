@@ -1,7 +1,7 @@
 import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import { z } from 'zod'
-import { PluginContext, PluginTool } from '../plugin.js'
+import { PluginContext, PluginFunction, PluginTool } from '../plugin.js'
 import { CustomPluginConfig } from './config.js'
 
 const customPluginToolSchema = z.object({
@@ -11,11 +11,12 @@ const customPluginToolSchema = z.object({
   execute: z.function(),
 })
 
-export async function loadCustomPlugin(context: PluginContext, raw: CustomPluginConfig): Promise<PluginTool[]> {
-  const resolvedPath = resolvePath(context, raw.path)
+const loadCustomPlugin: PluginFunction = async (raw, context: PluginContext) => {
+  const config = raw as CustomPluginConfig
+  const resolvedPath = resolvePath(context, config.path)
   try {
     const fn = await importPluginFunction(resolvedPath)
-    const tools = callAndValidate(fn, raw, resolvedPath)
+    const tools = callAndValidate(fn, config, resolvedPath)
     return tools.map(tool => validateToolDefinition(tool, resolvedPath))
   }
   catch (err) {
@@ -60,3 +61,5 @@ function validateToolDefinition(tool: unknown, resolvedPath: string): PluginTool
     execute: execute as PluginTool['execute'],
   }
 }
+
+export default loadCustomPlugin
