@@ -13,7 +13,7 @@ export interface PluginTool {
   execute: (input: Record<string, unknown>) => Promise<McpToolResult>
 }
 
-export type PluginFunction = (raw: { type: string }, context: PluginContext) => PluginTool[]
+export type PluginFunction = (config: { type: string }, context: PluginContext) => PluginTool[] | Promise<PluginTool[]>
 
 export interface PluginContext {
   cwd: string

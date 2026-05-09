@@ -3,26 +3,8 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import * as crypto from 'node:crypto'
 import { describe, it, afterEach, expect } from 'vitest'
-import { loadCustomPlugin } from '../src/plugin/custom/index.js'
-import { SecureClaudeConfig } from '../src/bin/config.js'
-
-function makeConfig(cwd: string): SecureClaudeConfig {
-  return {
-    tmpFolder: path.join(cwd, '.secureclaude'),
-    configPath: undefined,
-    allowedDomains: [],
-    blockedDomains: [],
-    defaultAllow: false,
-    dnsServers: '1.1.1.1 8.8.8.8',
-    proxy: 'NONE',
-    additionalVolumes: [],
-    deniedPaths: [],
-    mcpPort: 9418,
-    enableGitCommands: false,
-    plugins: [],
-    cwd,
-  }
-}
+import loadCustomPlugin from '../src/plugin/custom/index.js'
+import { CustomPluginConfig } from '../src/plugin/custom/config.js'
 
 const tmpFiles: string[] = []
 
@@ -55,22 +37,22 @@ const ZOD_PATH = JSON.stringify(require.resolve('zod'))
 
 describe('loadCustomPlugin', () => {
   it('throws a clear error for a missing file', async () => {
-    const config = makeConfig(os.tmpdir())
-    await expect(loadCustomPlugin(config, { type: 'custom', path: './nonexistent-plugin.cjs' }))
+    const config: CustomPluginConfig = { type: 'custom', path: './nonexistent-plugin.cjs' }
+    await expect(loadCustomPlugin(config, { cwd: os.tmpdir() }))
       .rejects.toThrow('not found')
   })
 
   it('throws a clear error when the export is not a function', async () => {
     const filePath = await writeTmpPlugin('module.exports = { notAFunction: true };')
-    const config = makeConfig(os.tmpdir())
-    await expect(loadCustomPlugin(config, { type: 'custom', path: filePath }))
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    await expect(loadCustomPlugin(config, { cwd: os.tmpdir() }))
       .rejects.toThrow('must export a function')
   })
 
   it('throws a clear error when the return value is not an array', async () => {
     const filePath = await writeTmpPlugin('module.exports = function() { return {}; };')
-    const config = makeConfig(os.tmpdir())
-    await expect(loadCustomPlugin(config, { type: 'custom', path: filePath }))
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    await expect(loadCustomPlugin(config, { cwd: os.tmpdir() }))
       .rejects.toThrow('array')
   })
 
@@ -80,8 +62,8 @@ describe('loadCustomPlugin', () => {
         return [{ description: 'x', execute: async () => ({}) }];
       };
     `)
-    const config = makeConfig(os.tmpdir())
-    await expect(loadCustomPlugin(config, { type: 'custom', path: filePath }))
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    await expect(loadCustomPlugin(config, { cwd: os.tmpdir() }))
       .rejects.toThrow('"name"')
   })
 
@@ -91,15 +73,15 @@ describe('loadCustomPlugin', () => {
         return [{ name: 'x', description: 'y' }];
       };
     `)
-    const config = makeConfig(os.tmpdir())
-    await expect(loadCustomPlugin(config, { type: 'custom', path: filePath }))
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    await expect(loadCustomPlugin(config, { cwd: os.tmpdir() }))
       .rejects.toThrow('"execute"')
   })
 
   it('returns a PluginTool with the correct name and callable execute', async () => {
     const filePath = await writeTmpPlugin(VALID_PLUGIN)
-    const config = makeConfig(os.tmpdir())
-    const tools = await loadCustomPlugin(config, { type: 'custom', path: filePath })
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    const tools = await loadCustomPlugin(config, { cwd: os.tmpdir() })
     expect(tools).toHaveLength(1)
     expect(tools[0].name).toBe('hello')
     const result = await tools[0].execute({})
@@ -115,8 +97,8 @@ describe('loadCustomPlugin', () => {
         ];
       };
     `)
-    const config = makeConfig(os.tmpdir())
-    const tools = await loadCustomPlugin(config, { type: 'custom', path: filePath })
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    const tools = await loadCustomPlugin(config, { cwd: os.tmpdir() })
     expect(tools).toHaveLength(2)
     expect(tools.map(t => t.name)).toEqual(['tool_a', 'tool_b'])
   })
@@ -127,10 +109,8 @@ describe('loadCustomPlugin', () => {
     const pluginPath = path.join(dir, 'plugin.cjs')
     await fsp.writeFile(pluginPath, VALID_PLUGIN, 'utf8')
     tmpFiles.push(pluginPath)
-
-    const config = makeConfig(os.tmpdir())
-    config.configPath = path.join(dir, 'secure-claude.yaml')
-    const tools = await loadCustomPlugin(config, { type: 'custom', path: './plugin.cjs' })
+    const config: CustomPluginConfig = { type: 'custom', path: './plugin.cjs' }
+    const tools = await loadCustomPlugin(config, { cwd: dir })
     expect(tools).toHaveLength(1)
 
     await fsp.rm(dir, { recursive: true, force: true })
@@ -148,8 +128,8 @@ describe('loadCustomPlugin', () => {
         }];
       };
     `)
-    const config = makeConfig(os.tmpdir())
-    const tools = await loadCustomPlugin(config, { type: 'custom', path: filePath })
+    const config: CustomPluginConfig = { type: 'custom', path: filePath }
+    const tools = await loadCustomPlugin(config, { cwd: os.tmpdir() })
     expect(tools).toHaveLength(1)
     const schema = tools[0].inputSchema as Record<string, { safeParse: (v: unknown) => { success: boolean } }>
     expect(schema.msg.safeParse('hello').success).toBe(true)

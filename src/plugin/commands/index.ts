@@ -1,8 +1,7 @@
 import { CommandsPluginConfig } from './config.js'
 import { buildPluginTool } from './tools.js'
-import { PluginFunction } from '../plugin.js'
 
-const commandsPlugin: PluginFunction = (raw, context) => {
+const commandsPlugin = (raw: { type: string }, context: { cwd: string }) => {
   const config = raw as CommandsPluginConfig
   return (config.commands ?? []).map(cmd => buildPluginTool(context.cwd, cmd))
 }

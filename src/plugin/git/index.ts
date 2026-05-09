@@ -1,8 +1,8 @@
 import { ALL_GIT_TOOL_NAMES, GitPluginConfig, GitToolNames } from './config.js'
 import { GIT_TOOLS, GitTool } from './tools.js'
-import { PluginContext, PluginFunction } from '../plugin.js'
+import { PluginContext } from '../plugin.js'
 
-const gitPlugin: PluginFunction = (raw, context) => {
+const gitPlugin = (raw: { type: string }, context: PluginContext) => {
   const config = raw as GitPluginConfig
   const toolNames = new Set<GitToolNames>(config.tools?.enabled ?? [...ALL_GIT_TOOL_NAMES])
   for (const blocked of config.tools?.blocked ?? []) {
@@ -19,14 +19,14 @@ const gitPlugin: PluginFunction = (raw, context) => {
 }
 
 async function executeTool(config: GitPluginConfig, context: PluginContext, tool: GitTool, input: Record<string, unknown>) {
-  if (tool.branchParam && config.branches?.pattern) {
+  if (tool.branchParam && config.filters?.branches) {
     const branch = input[tool.branchParam] as string
-    if (!new RegExp(config.branches.pattern).test(branch))
-      throw new Error(`Git plugin: branch "${branch}" does not match allowed pattern "${config.branches.pattern}"`)
+    if (!new RegExp(config.filters.branches.join('|')).test(branch))
+      throw new Error(`Git plugin: branch "${branch}" does not match allowed pattern "${config.filters.branches.join('|')}"`)
   }
   const result = await tool.execute(context.cwd, input)
-  if (tool.filterOutputByBranch && config.branches?.pattern) {
-    const pattern = new RegExp(config.branches.pattern)
+  if (tool.filterOutputByBranch && config.filters?.branches) {
+    const pattern = new RegExp(config.filters.branches.join('|'))
     return {
       ...result,
       content: result.content.map((c) => {
