@@ -84,9 +84,9 @@ Implement the plan step by step in the agreed order. After each logical chunk, b
 
 When finished the implementation, ask the user to check and review everything. Answer their questions and perform changes they request. Challenge changes and remind them of the acceptance criteria if they cannot be met with the requested changes. Only move forward if the user clearly states that the review is finished.
 
-### Step 6: Commit and Push
+### Step 6: Commit
 
-When the user has finished their review, create a commit with a short, punchy message that references the issue and push the issue
+When the user has finished their review, create a commit with a short, punchy message that references the issue
 
 ```bash
 git add <relevant files>
@@ -96,7 +96,6 @@ git commit -m "$(cat <<'EOF'
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
-git push -u origin HEAD
 ```
 
 Message rules:
@@ -132,7 +131,20 @@ Before you commit, run the following checks in order:
 
 Report the outcome of each check to the user. Only proceed to commit once all checks pass.
 
-### Step 7: Open a Pull Request
+### Step 7: Offer to release
+
+Ask the user: "Do you want to create a release for this change?"
+
+If yes, follow the `create-release` skill workflow — but stay on the current branch rather than creating a new `release/v<version>` branch. Stop after the commit (skip the push and PR steps from `create-release` — those are handled by Step 8). The release changes (`package.json` version bump and `RELEASE_NOTES.md` update) land in a separate commit on this branch.
+
+
+### Step 8: Push and open a Pull Request
+
+Push the branch to origin:
+
+```bash
+git push -u origin HEAD
+```
 
 After pushing, ask the user if they want to create a PR. If so, open one that auto-closes the issue on merge:
 

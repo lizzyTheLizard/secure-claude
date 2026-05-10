@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "start": "node dist/bin/index.js",
     "test": "vitest run --no-file-parallelism",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check-release": "node scripts/check-release.mjs"
   },
   "keywords": [],
   "author": "",
