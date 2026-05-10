@@ -219,7 +219,7 @@ You can either define the environment variable `ANTHROPIC_API_KEY` or run pnpm s
 
 On merge to `main`, CI automatically creates a git tag and publishes to npm — but only when `package.json` version has changed. Run `pnpm check-release` locally to verify readiness before merging.
 
-You can use the `/create-release` Claude skill. It inspects commits since the last release, proposes a semver bump and release notes, and opens a PR with the version bump and `RELEASE_NOTES.md` update.
+You can use the `/create-release` Claude skill. It inspects commits since the last release, proposes a semver bump and release notes, and opens a PR with the version bump and `RELEASE_NOTES.md` update. Do not manually create git tags, e.g by using `pnpm version patch --no-git-tag-version` to increment the version without tagging.
 
 ## Contributing
 
