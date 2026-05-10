@@ -96,3 +96,4 @@ Return the PR URL to the user.
 - Always run `pnpm check-release` after making changes and before pushing.
 - Use `release/v<version>` as the branch naming convention.
 - Do not modify any source code — this PR contains only `package.json` and `RELEASE_NOTES.md` changes.
+- Do not create git tags or publish to npm directly — the CI pipeline handles that on merge to `main`. Use `pnpm version` only with `--no-git-tag-version` or similar to bypass the normal flow.

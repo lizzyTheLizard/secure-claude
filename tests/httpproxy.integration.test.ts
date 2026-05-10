@@ -47,11 +47,13 @@ async function setupProxy(partialConfig: Partial<SecureClaudeConfig>): Promise<S
 
 async function curlThroughProxy(url: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
+    console.log(`Testing URL through proxy: ${url}`)
     const child = spawn('curl', ['--proxy', 'http://localhost:9128', '-s', '-o', '/dev/null', '-w', '%{http_code}', url])
     let stdout = ''
     child.stdout.on('data', (data: Buffer) => { stdout += data.toString() })
     child.on('error', (err) => { reject(err) })
     child.on('close', () => {
+      console.log(`Received response code: ${stdout.trim()}`)
       resolve(stdout.trim())
     })
   })
