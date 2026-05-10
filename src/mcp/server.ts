@@ -37,7 +37,7 @@ async function getPluginTools(plugin: { type: string }, context: PluginContext):
     const m = await import('../plugin/custom/index.js')
     fn = m.default
   }
-  if (plugin.type === 'github') {
+  else if (plugin.type === 'github') {
     const m = await import('../plugin/github/index.js')
     fn = m.default
   }
