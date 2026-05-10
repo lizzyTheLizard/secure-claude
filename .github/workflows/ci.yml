@@ -89,17 +89,23 @@ jobs:
         id: detect
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            git fetch origin main
-            DIFF=$(git diff origin/main -- package.json)
+              echo "Checking for changes in package.json against origin/main"
+              git fetch origin main > /dev/null 2>&1
+              git diff origin/main -- package.json | grep -q '"version"'
+              VERSION_CHANGED=$?
           else
-            DIFF=$(git diff HEAD~1 -- package.json)
+              echo "Checking for changes in package.json against HEAD~1"
+              git diff HEAD~1 -- package.json | grep -q '"version"'
+              VERSION_CHANGED=$?
           fi
-          if echo "$DIFF" | grep -q '"version"'; then
-            VERSION=$(node -p "require('./package.json').version")
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ $VERSION_CHANGED -eq 0 ]; then
+              VERSION=$(node -p "require('./package.json').version")
+              echo "Version changed in package.json, new version is $VERSION"
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "Version not changed in package.json"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: pnpm/action-setup@v6
