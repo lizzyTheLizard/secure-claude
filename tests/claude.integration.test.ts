@@ -87,7 +87,7 @@ it('Combined Integration Test', async () => {
     = 'Complete all of the following tasks in order. '
       + 'Task 1: Use the git_status MCP tool and write its output to a file called STATUS.txt in the current directory. '
       + 'Task 2: Use the wget_url MCP tool to fetch https://example.com and write its output to a file called WGET.txt in the current directory. '
-      + 'Task 3: Call the hello_world MCP tool and write its exact output to a file called PLUGIN.txt in the current directory. '
+      + 'Task 3: Call the hello_world MCP tool and write its exact output to a file called PLUGIN.txt in the current directory. If the tool is not present or fails, write the error message to PLUGIN.txt instead. '
       + 'Task 4: Run each of the following bash commands in order and append the result line to RESULT.txt in the current directory. '
       + `4a. content=$(cat ${envFile} 2>/dev/null); [ -z "$content" ] && echo RESULT_FILE_DENY:EMPTY >> ${testDir}/RESULT.txt || echo RESULT_FILE_DENY:ACCESSIBLE >> ${testDir}/RESULT.txt; `
       + `4b. count=$(ls ${secretsDir} 2>/dev/null | wc -l | tr -d ' '); [ "$count" = "0" ] && echo RESULT_DIR_DENY:EMPTY >> ${testDir}/RESULT.txt || echo RESULT_DIR_DENY:NOT_EMPTY >> ${testDir}/RESULT.txt; `

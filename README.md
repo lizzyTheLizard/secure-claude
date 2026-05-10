@@ -217,19 +217,9 @@ You can either define the environment variable `ANTHROPIC_API_KEY` or run pnpm s
 
 ### Releases
 
-Releases are published to npm automatically when a `v*` tag is pushed.
+On merge to `main`, CI automatically creates a git tag and publishes to npm — but only when `package.json` version has changed. Run `pnpm check-release` locally to verify readiness before merging.
 
-1. Make sure your changes are merged to `main` and CI is green.
-2. Bump the version and create a tag:
-   ```bash
-   pnpm version patch   # or minor / major
-   ```
-3. Push the commit and tag:
-   ```bash
-   git push --follow-tags
-   ```
-
-The `publish` GitHub Actions workflow picks up the tag, runs lint/build/tests, and publishes to npm. The published version matches the tag.
+You can use the `/create-release` Claude skill. It inspects commits since the last release, proposes a semver bump and release notes, and opens a PR with the version bump and `RELEASE_NOTES.md` update.
 
 ## Contributing
 
