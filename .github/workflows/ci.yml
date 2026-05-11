@@ -85,46 +85,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect version change
-        id: detect
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "Checking for changes in package.json against origin/main"
-              git fetch origin main > /dev/null 2>&1
-              git diff origin/main -- package.json | grep -q '"version"'
-              VERSION_CHANGED=$?
-          else
-              echo "Checking for changes in package.json against HEAD~1"
-              git diff HEAD~1 -- package.json | grep -q '"version"'
-              VERSION_CHANGED=$?
-          fi
-          if [ $VERSION_CHANGED -eq 0 ]; then
-              VERSION=$(node -p "require('./package.json').version")
-              echo "Version changed in package.json, new version is $VERSION"
-              echo "changed=true" >> "$GITHUB_OUTPUT"
-              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          else
-              echo "Version not changed in package.json"
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: pnpm/action-setup@v6
-        if: steps.detect.outputs.changed == 'true'
 
       - uses: actions/setup-node@v6
-        if: steps.detect.outputs.changed == 'true'
         with:
           node-version: 22
           cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        if: steps.detect.outputs.changed == 'true'
         run: pnpm install
 
-      - name: Run check-release
-        if: steps.detect.outputs.changed == 'true'
+      - name: Detect version change and check release
         run: pnpm check-release
+
+      - name: Write Outputs
+        id: detect
+        run: cat release-check-result.txt >> "$GITHUB_OUTPUT"
 
   publish:
     runs-on: ubuntu-latest
