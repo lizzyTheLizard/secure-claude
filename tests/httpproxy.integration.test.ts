@@ -39,7 +39,7 @@ async function setupProxy(partialConfig: Partial<SecureClaudeConfig>): Promise<S
   const id = crypto.randomBytes(4).toString('hex')
   const tmpDir = os.tmpdir()
   const dir = path.join(tmpDir, `secure-claude-test-${id}`)
-  const config = { ...DEFAULT_CONFIG, cwd: tmpDir, tmpFolder: dir, projectName: id, ...partialConfig }
+  const config = { ...DEFAULT_CONFIG, cwd: tmpDir, tmpFolder: dir, projectName: 'id-' + id, ...partialConfig }
   await recreateTmpDir(config)
   await spawnHelper('Start httpproxy', 'docker', ['compose', 'run', '--rm', '-p', '9128:3128', '-d', 'httpproxy'], config.tmpFolder)
   return config
