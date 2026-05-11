@@ -22,6 +22,7 @@ On first run an interactive wizard creates a `secure-claude.yaml` config. After 
 
 ```bash
 secure-claude -p "refactor this module"   # non-interactive prompt
+secure-claude init                        # (re-)run the interactive config wizard
 secure-claude recreate                    # force-regenerate the Docker stack
 ```
 
@@ -32,23 +33,94 @@ The following configuration options are available in `secure-claude.yaml`:
 
 | Field | Type | Default | Purpose |
 |---|---|---|---|
-| `tmpFolder` | string | `.secureclaude` | Where generated files land |
+| `tmpFolder` | string | `.secureclaude` | Directory (relative to project root) where generated files land (`docker-compose.yaml`, `squid.conf`, etc.) |
 | `defaultAllow` | boolean | `false` | Internet default policy (deny-all vs allow-all) |
 | `allowedDomains` | string[] | `[]` | HTTP whitelist ACL |
 | `blockedDomains` | string[] | `[]` | HTTP blacklist ACL |
-| `dnsServers` | string | `"1.1.1.1, 8.8.8.8 "` | Comma-separated DNS IPs for outgoing requests |
-| `proxy` | object | — | Upstream proxy (`host`, `port`, `username`, `password`) or 'NONE' |
-| `mcpPort` | number | 8123 | Port for the MCP plugin to listen on |
+| `dnsServers` | string | `"1.1.1.1 8.8.8.8"` | Space-separated DNS IPs for outgoing requests |
+| `proxy` | object\|`'NONE'` | `'NONE'` | Upstream HTTP proxy for Squid's outbound traffic. Set to `'NONE'` to disable, or provide `host`, `port`, and optionally `username`/`password` (see example below) |
+| `mcpPort` | number | 9418 | Port the host-side MCP server listens on (the container connects to it via `host.docker.internal`) |
 | `additionalVolumes` | VolumeMount[] | `[]` | Additional host paths to mount. By default only the current working directory is mounted into the container. Each entry should specify a path and a mode: ('ro' or 'rw') |
 | `deniedPaths` | string[] | `[]` | Additional host paths to explicitly deny access to. This is a "deny list" that overrides any allow rules. Useful for blocking sensitive subdirectories under an otherwise allowed parent directory. Paths should be absolute or relative to the project root. |
 | `projectName` | string | (current folder name) | A human-friendly name for the project, used for docker container naming and logging. Defaults to the current folder name. |
 | `plugins` | [] | [] | A list of plugins (see below) |
 
+Full example `secure-claude.yaml`:
+
+```yaml
+projectName: my-project
+tmpFolder: .secureclaude
+
+# Network policy: deny-all by default, whitelist specific domains
+defaultAllow: false
+allowedDomains:
+  - .github.com
+  - registry.npmjs.org
+  - .mycompany.internal
+blockedDomains: []
+
+# DNS servers to resolve additional internal domains,  remove to use default ones
+dnsServers: "127.129.10.12 127.129.10.13"
+
+# Upstream proxy — remove or set to 'NONE' to disable
+proxy:
+  host: 127.129.10.1
+  port: 8080
+  username: alice       # optional
+  password: secret      # optional
+
+# Port for the host-side MCP server that exposes plugins to the container. Remove to use default 9418, or change if you have a conflict on that port.
+mcpPort: 7615
+
+# Mount additional host paths into the container
+additionalVolumes:
+  - path: /home/alice/.ssh
+    mode: ro
+  - path: /shared/data
+    mode: rw
+
+# Block sensitive subdirectories even when a parent path is mounted
+deniedPaths:
+  - /home/user/workingdir/.env
+  - /home/alice/.ssh/id_rsa
+  - /shared/data/secrets/
+
+plugins:
+  - type: git
+    tools:
+      blocked:
+        - git_push        # prevent direct pushes; this has to be done manually from the host for better control and auditing
+    filters:
+      branches:           # restrict checkout/merge/delete to these 
+        - 'main'
+        - 'feature/.*'
+
+  - type: github
+    filters:
+      repository: my-org/my-repo
+
+  - type: commands
+    commands:
+      - name: run_tests
+        description: Run the test suite.
+        template: npm test {testSuite}
+        params:
+          - name: testSuite
+            type: string
+            description: Which test suite to run (e.g. "unit", "integration").
+      - name: start_dev_server
+        description: Start the development server.
+        template: npm start
+
+  - type: custom
+    path: ./myCustomPlugin.js
+```
+
 ### Plugins
 The `plugins` config field allows you to specify additional plugins providing functionality to Claude. They run within an MCP server on the host machine. The following plugins are currently available:
 
 #### Git Plugin
-Running Git commands like commit and push. 
+Run git commands (status, diff, log, commit, push, etc.) from within Claude.
 
 ```yaml
 plugins:
@@ -67,23 +139,23 @@ plugins:
 The following tools are available for the Git plugin:
 | Tool Name | Description |
 |---|---|
-| `git_status` | Show the current git status |
-| `git_diff` | Show the git diff of unstaged changes |
-| `git_log` | Show the git commit log |
-| `git_add` | Stage files for commit |
-| `git_commit` | Create a new commit with a message |
-| `git_push` | Push commits to the remote repository |
-| `git_pull` | Pull latest changes from the remote repository |
-| `git_checkout` | Checkout a branch or commit (restricted by `branches.pattern`) |
-| `git_branch_list` | List all local branches |
-| `git_branch_delete` | Delete a local branch (restricted by `branches.pattern`) |
-| `git_merge` | Merge a branch into the current branch (restricted by `branches.pattern`) |
-| `git_stash` | Stash unstaged changes |
-| `git_stash_pop` | Apply the latest stashed changes and remove them from the stash |
+| `git_status` | Show the working tree status |
+| `git_diff` | Show changes between commits, commit and working tree, etc. |
+| `git_log` | Show recent commit log |
+| `git_add` | Stage a file or path |
+| `git_commit` | Commit staged changes |
+| `git_push` | Push commits to the remote |
+| `git_pull` | Fetch and merge from the remote |
+| `git_checkout` | Switch branches or restore files (restricted by `branches` filter) |
+| `git_branch_list` | List local branches |
+| `git_branch_delete` | Delete a local branch (restricted by `branches` filter) |
+| `git_merge` | Merge a branch into the current branch (restricted by `branches` filter) |
+| `git_stash` | Stash current changes |
+| `git_stash_pop` | Apply the most recent stash |
 
 
 #### GitHub Plugin
-Running GitHub commands
+Read and write GitHub issues, pull requests, and Actions workflows via the `gh` CLI.
 
 ```yaml
 plugins:
@@ -174,11 +246,16 @@ pnpm test         # run all tests (see Testing below)
 The tool wraps Claude Code in a Docker Compose stack that enforces network policy via a Squid HTTP proxy.
 
 ```
-Claude container ──► Squid (httpproxy) ──► extnet ──► internet
-                      intnet only              └─ extnet
+host machine
+  ├─ secure-claude (MCP server, port 9418)
+  └─ Docker Compose
+       ├─ claude  (intnet only) ──► Squid (httpproxy) ──► extnet ──► internet
+       └─ httpproxy             ──► extnet
 ```
 
 `intnet` is Docker-internal — only the `httpproxy` service has `extnet` access, so all Claude traffic must pass through Squid. The Squid config is generated from the `secure-claude.yaml` allowlist/blocklist before each run.
+
+The MCP server runs on the host (not inside any container) and is reachable from the Claude container via `host.docker.internal:9418`. It loads configured plugins (git, github, commands, custom) and exposes them to Claude as MCP tools.
 
 The entry point (`src/bin/index.ts`) runs the following steps on startup:
 
@@ -193,7 +270,7 @@ The entry point (`src/bin/index.ts`) runs the following steps on startup:
 src/
   bin/          Entry point, config loading, regeneration logic, Docker Compose template
   httpproxy/    Squid config generation and template
-  mcp/          MCP server that hosts plugins inside the container
+  mcp/          Host-side MCP server and config generation
   plugin/         Plugin implementations (git, github, commands, custom)
   spawnHelper.ts  Shared helper for spawning child processes
 tests/            Unit and integration tests (vitest)
@@ -207,19 +284,24 @@ Tests are run with [vitest](https://vitest.dev). Two categories:
 - **Unit tests** (`*.unit.test.ts`) — no external dependencies, run anywhere:
   ```bash
   pnpm vitest run .unit.test
+  pnpm test:watch          # watch mode for TDD
   ```
 
-- **Integration tests** (`*.integration.test.ts`) — spawn real Docker containers and require a valid `ANTHROPIC_API_KEY`. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache:
+- **Integration tests** (`*.integration.test.ts`) — spawn real Docker containers. First run builds the Docker image (~2–5 min); subsequent runs use the layer cache. Most integration tests only require Docker:
   ```bash
-  pnpm vitest run .integration.test
+  pnpm vitest run --no-file-parallelism --exclude "tests/claude.integration.test.ts" .integration.test
   ```
-You can either define the environment variable `ANTHROPIC_API_KEY` or run pnpm start and login interactively before running the tests.
+  `claude.integration.test.ts` additionally requires a working Claude login and is **excluded from CI**. Run it locally when you need end-to-end coverage:
+  ```bash
+  pnpm vitest run tests/claude.integration.test.ts
+  ```
+  Set `ANTHROPIC_API_KEY` as an environment variable or in a `.env` file at the project root, or run `pnpm start` once and log in interactively before running the test.
 
 ### Releases
 
 On merge to `main`, CI automatically creates a git tag and publishes to npm — but only when `package.json` version has changed. Run `pnpm check-release` locally to verify readiness before merging.
 
-You can use the `/create-release` Claude skill. It inspects commits since the last release, proposes a semver bump and release notes, and opens a PR with the version bump and `RELEASE_NOTES.md` update. Do not manually create git tags, e.g by using `pnpm version patch --no-git-tag-version` to increment the version without tagging.
+You can use the `/create-release` Claude skill. It inspects commits since the last release, proposes a semver bump and release notes, and opens a PR with the version bump and `RELEASE_NOTES.md` update. Do not manually create git tags, e.g. by using `pnpm version patch --no-git-tag-version` to increment the version without tagging.
 
 ## Contributing
 

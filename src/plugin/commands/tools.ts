@@ -7,7 +7,7 @@ export function buildPluginTool(cwd: string, cmd: CommandDef): PluginTool {
   return {
     name: cmd.name,
     description: cmd.description,
-    inputSchema: buildInputSchema(cmd.params),
+    inputSchema: cmd.params ? buildInputSchema(cmd.params) : {},
     execute: input => executeCommand(cwd, cmd, input as Record<string, string | number | boolean>),
   }
 }
