@@ -4,7 +4,7 @@ export interface CommandDef {
   // Space-separated tokens; tokens matching {paramName} are replaced by the corresponding param value.
   // Each token becomes a separate argv element — no shell interpolation, preventing injection.
   template: string
-  params: CommandParam[]
+  params?: CommandParam[]
 }
 
 export interface CommandParam {

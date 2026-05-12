@@ -18,6 +18,12 @@ const ECHO_CMD: CommandDef = {
   params: [{ name: 'message', type: 'string', description: 'Message to echo' }],
 }
 
+const PING_CMD: CommandDef = {
+  name: 'ping',
+  description: 'Ping localhost',
+  template: 'ping localhost',
+}
+
 function makeFakeProcess() {
   return {
     stdout: { on: vi.fn() },
@@ -48,6 +54,15 @@ describe('commandsPlugin', () => {
     const config: CommandsPluginConfig = { type: 'commands', commands: [ECHO_CMD] }
     const tools = commandsPlugin(config, CONTEXT)
     expect(tools[0].inputSchema?.message).toBeDefined()
+  })
+
+  it('no params', () => {
+    const config: CommandsPluginConfig = { type: 'commands', commands: [PING_CMD] }
+    const tools = commandsPlugin(config, CONTEXT)
+    expect(tools).toHaveLength(1)
+    expect(tools[0].name).toBe('ping')
+    expect(tools[0].description).toBe('Ping localhost')
+    expect(tools[0].inputSchema).toEqual({})
   })
 })
 
