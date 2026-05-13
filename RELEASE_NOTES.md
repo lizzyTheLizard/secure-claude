@@ -1,8 +1,8 @@
 # Release Notes
 
-## 1.0.3
+## 1.0.4
 
-- Improved check-release script
+- Fixed publish pipeline
 - Improved documentation
 - Dependency updates (eslint 10, typescript-eslint, @types/node)
 
