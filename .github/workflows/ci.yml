@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  id-token: write  # Required for npm publish
+  contents: read
+
 jobs:
   buildtest:
     runs-on: ubuntu-latest
@@ -64,8 +68,6 @@ jobs:
           fi
 
       - name: Integration tests
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: pnpm vitest run --no-file-parallelism --reporter=verbose --exclude "tests/claude.integration.test.ts" .integration.test
 
       - name: Save Docker cache
@@ -136,6 +138,4 @@ jobs:
           git push origin "v${{ needs.check-release.outputs.version }}"
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        run: pnpm publish
