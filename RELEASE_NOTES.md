@@ -1,6 +1,6 @@
 # Release Notes
 
-## 1.0.6
+## 1.0.7
 
 - Fixed publish pipeline
 - Improved documentation
