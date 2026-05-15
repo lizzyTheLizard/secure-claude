@@ -8,12 +8,21 @@ importers:
 
   .:
     dependencies:
+      '@cfworker/json-schema':
+        specifier: ^4.1.1
+        version: 4.1.1
       '@modelcontextprotocol/node':
         specifier: 2.0.0-alpha.2
         version: 2.0.0-alpha.2(@modelcontextprotocol/server@2.0.0-alpha.2(@cfworker/json-schema@4.1.1))(hono@4.12.17)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
+      '@modelcontextprotocol/server':
+        specifier: 2.0.0-alpha.2
+        version: 2.0.0-alpha.2(@cfworker/json-schema@4.1.1)
+      hono:
+        specifier: ^4.11.4
+        version: 4.12.17
       yaml:
         specifier: ^2.7.0
         version: 2.8.4
@@ -1353,8 +1362,7 @@ packages:
 
 snapshots:
 
-  '@cfworker/json-schema@4.1.1':
-    optional: true
+  '@cfworker/json-schema@4.1.1': {}
 
   '@esbuild/aix-ppc64@0.27.7':
     optional: true
