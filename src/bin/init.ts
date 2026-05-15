@@ -2,7 +2,9 @@ import * as fsp from 'node:fs/promises'
 import * as path from 'node:path'
 import * as readline from 'node:readline'
 import { stringify } from 'yaml'
-import type { SecureClaudeConfig, VolumeMount } from './config.js'
+import type { PluginConfig, SecureClaudeConfig, VolumeMount } from './config.js'
+
+type ImportedConfig = Omit<Partial<SecureClaudeConfig>, 'plugins'> & { plugins?: Partial<PluginConfig>[] }
 
 export const SENSITIVE_FILE_PATTERNS = [
   /^\.env$/,
@@ -32,7 +34,7 @@ export async function runInit(cwd = process.cwd(), rlIn?: readline.Interface): P
     const additionalVolumes = await collectAdditionalVolumes(rl)
     const deniedPaths = await collectDeniedPaths(cwd, additionalVolumes, rl)
     const plugins = await collectPlugins(cwd, rl)
-    const config: Partial<SecureClaudeConfig> = {
+    const config: ImportedConfig = {
       defaultAllow,
       allowedDomains,
       blockedDomains,
@@ -152,7 +154,7 @@ export async function scanForSensitiveFiles(dir: string, rl: readline.Interface)
   return denied
 }
 
-async function collectPlugins(cwd: string, rl: readline.Interface): Promise<{ type: string }[]> {
+async function collectPlugins(cwd: string, rl: readline.Interface): Promise<Partial<PluginConfig>[]> {
   // For now we just return the git plugin if a .git folder is found, but this could be extended in the future to support more plugins and more complex configuration.
   const isGitRepo = await fsp.access(path.join(cwd, '.git')).then(() => true).catch(() => false)
   if (!isGitRepo) return []
