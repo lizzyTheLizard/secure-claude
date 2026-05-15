@@ -7,6 +7,13 @@ export interface VolumeMount {
   mode: 'ro' | 'rw'
 }
 
+export interface PluginConfig {
+  type: string
+  id?: string
+  name: string
+  [key: string]: unknown
+}
+
 export interface SecureClaudeConfig {
   projectName: string
   tmpFolder: string
@@ -19,7 +26,7 @@ export interface SecureClaudeConfig {
   additionalVolumes: VolumeMount[]
   deniedPaths: string[]
   mcpPort: number
-  plugins: { type: string }[]
+  plugins: PluginConfig[]
   cwd: string
 }
 
@@ -57,13 +64,26 @@ export async function loadConfig(dir?: string): Promise<SecureClaudeConfig> {
     throw new Error(`Config file is not valid YAML: "${configPath}"`)
   }
 
-  const parsedInput = parsed as Partial<SecureClaudeConfig>
+  const parsedInput = parsed as Partial<SecureClaudeConfig> & { plugins?: unknown[] }
   console.debug(`Loaded config from "${configPath}":`, parsedInput)
   return {
     ...DEFAULT_CONFIG,
     projectName: path.basename(cwd),
     ...parsedInput,
+    plugins: resolvePlugins(parsedInput.plugins ?? []),
     configPath,
     cwd,
   }
+}
+
+function resolvePlugins(raw: unknown[]): PluginConfig[] {
+  const plugins = raw.map((p) => {
+    const plugin = p as { type: string, id?: string }
+    const id = plugin.id ?? plugin.type
+    return { ...(plugin as Record<string, unknown>), id, name: `${plugin.type}_${id}` } as PluginConfig
+  })
+  const names = plugins.map(p => p.name)
+  const duplicate = names.find((n, i) => names.indexOf(n) !== i)
+  if (duplicate) throw new Error(`Duplicate plugin name "${duplicate}": set a unique "id" for each plugin of the same type`)
+  return plugins
 }

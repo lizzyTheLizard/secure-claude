@@ -106,7 +106,7 @@ async function buildDockerImage(config: SecureClaudeConfig) {
 }
 
 async function generateSystemPromptFile(config: SecureClaudeConfig): Promise<string> {
-  let content = `
+  const content = `
     You are running inside a secure sandbox environment managed by secure-claude. 
     You have limited internet access, access to the current working dir and certain additional folders and a limited set of commands via a mcp server. 
     The sandbox is configured with the following settings:
@@ -116,14 +116,8 @@ async function generateSystemPromptFile(config: SecureClaudeConfig): Promise<str
     - Current working directory: ${config.cwd}
     - Available filesystem paths: ${config.additionalVolumes.length > 0 ? config.additionalVolumes.map(v => `${v.path} (${v.mode})`).join(', ') : 'none'}
     - Denied filesystem paths: ${config.deniedPaths.length > 0 ? config.deniedPaths.join(', ') : 'none'}
+  Additionally you can access the configured MCP servers
   `
-
-  if (config.plugins.length > 0) {
-    content += `
-    Beside this, you have access to the following commands via a MCP server running on http://host.docker.internal:${config.mcpPort.toString()}:
-    ${config.plugins.map(p => `- ${p.type}`).join('\n$ ')}
-  `
-  }
   const filePath = path.join(config.tmpFolder, 'system-prompt.txt')
   await fsp.writeFile(filePath, content, 'utf8')
   return filePath
