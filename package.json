@@ -1,6 +1,6 @@
 {
   "name": "secure-claude",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "Runs Claude Code in a sandboxed Docker environment with HTTP proxy filtering",
   "type": "module",
   "bin": {
